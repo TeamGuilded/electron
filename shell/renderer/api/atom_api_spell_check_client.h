@@ -42,6 +42,11 @@ class SpellCheckClient : public blink::WebSpellCheckPanelHostClient,
  private:
   class SpellcheckRequest;
   // blink::WebTextCheckClient:
+  void CheckSpelling(
+      const blink::WebString& text,
+      size_t& misspelled_offset,
+      size_t& misspelled_length,
+      blink::WebVector<blink::WebString>* optional_suggestions) override;
   void RequestCheckingOfText(const blink::WebString& textToCheck,
                              std::unique_ptr<blink::WebTextCheckingCompletion>
                                  completionCallback) override;
@@ -58,6 +63,7 @@ class SpellCheckClient : public blink::WebSpellCheckPanelHostClient,
     v8::Context::Scope context_scope_;
     v8::Local<v8::Object> provider_;
     v8::Local<v8::Function> spell_check_;
+    v8::Local<v8::Function> get_suggestions_;
 
     explicit SpellCheckScope(const SpellCheckClient& client);
     ~SpellCheckScope();
@@ -84,6 +90,10 @@ class SpellCheckClient : public blink::WebSpellCheckPanelHostClient,
           lang_words,
       const std::vector<base::string16>& misspelled_words);
 
+  void OnSuggestionsDone(const std::vector<base::string16>& suggested_words);
+
+  void GetSuggestions();
+
   // The parameters of a pending background-spellchecking request.
   // (When WebKit sends two or more requests, we cancel the previous
   // requests so we do not have to use vectors.)
@@ -97,6 +107,7 @@ class SpellCheckClient : public blink::WebSpellCheckPanelHostClient,
   v8::Persistent<v8::Context> context_;
   mate::ScopedPersistent<v8::Object> provider_;
   mate::ScopedPersistent<v8::Function> spell_check_;
+  mate::ScopedPersistent<v8::Function> get_suggestions_;
 
   DISALLOW_COPY_AND_ASSIGN(SpellCheckClient);
 };

@@ -102,10 +102,21 @@ SpellCheckClient::SpellCheckClient(const std::vector<std::string>& languages,
   // Persistent the method.
   mate::Dictionary dict(isolate, provider);
   dict.Get("spellCheck", &spell_check_);
+  dict.Get("getSuggestions", &get_suggestions_);
 }
 
 SpellCheckClient::~SpellCheckClient() {
   context_.Reset();
+}
+
+void SpellCheckClient::CheckSpelling(
+    const blink::WebString& text,
+    size_t& misspelled_offset,
+    size_t& misspelled_length,
+    blink::WebVector<blink::WebString>* optional_suggestions) {
+  if (!optional_suggestions)
+    return optional_suggestions->emplace_back(
+        blink::WebString::FromUTF8("hello"));
 }
 
 void SpellCheckClient::RequestCheckingOfText(
@@ -197,6 +208,22 @@ void SpellCheckClient::OnSpellCheckDone(
 
   pending_request_param_->completion()->DidFinishCheckingText(results);
   pending_request_param_ = nullptr;
+}
+
+void SpellCheckClient::OnSuggestionsDone(
+    const std::vector<base::string16>& suggested_words) {
+  LOG(INFO) << "GOT suggested words";
+}
+
+void SpellCheckClient::GetSuggestions() {
+  SpellCheckScope scope(*this);
+  v8::Local<v8::FunctionTemplate> templ = mate::CreateFunctionTemplate(
+      isolate_, base::Bind(&SpellCheckClient::OnSuggestionsDone, AsWeakPtr()));
+
+  auto context = isolate_->GetCurrentContext();
+  v8::Local<v8::Value> args[] = {templ->GetFunction(context).ToLocalChecked()};
+  // Call javascript with the words and the callback function
+  scope.spell_check_->Call(context, scope.provider_, 1, args).IsEmpty();
 }
 
 void SpellCheckClient::SpellCheckWords(

@@ -88,6 +88,8 @@ filenames = {
     "shell/browser/api/atom_api_protocol.h",
     "shell/browser/api/atom_api_screen.cc",
     "shell/browser/api/atom_api_screen.h",
+    "shell/browser/api/atom_api_service_worker_context.cc",
+    "shell/browser/api/atom_api_service_worker_context.h",
     "shell/browser/api/atom_api_session.cc",
     "shell/browser/api/atom_api_session.h",
     "shell/browser/api/atom_api_system_preferences.cc",

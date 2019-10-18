@@ -962,6 +962,15 @@ void AtomBrowserClient::RegisterNonNetworkNavigationURLLoaderFactories(
     protocol->RegisterURLLoaderFactories(factories);
 }
 
+void AtomBrowserClient::RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
+    content::BrowserContext* browser_context,
+    NonNetworkURLLoaderFactoryMap* factories) {
+  api::ProtocolNS* protocol = api::ProtocolNS::FromWrappedClass(
+      v8::Isolate::GetCurrent(), browser_context);
+  if (protocol)
+    protocol->RegisterURLLoaderFactories(factories);
+}
+
 void AtomBrowserClient::RegisterNonNetworkSubresourceURLLoaderFactories(
     int render_process_id,
     int render_frame_id,

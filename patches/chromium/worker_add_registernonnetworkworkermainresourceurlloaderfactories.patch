@@ -1,0 +1,299 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Hiroki Nakagawa <nhiroki@chromium.org>
+Date: Tue, 1 Oct 2019 22:36:34 +0000
+Subject: Worker: Add RegisterNonNetworkWorkerMainResourceURLLoaderFactories()
+ for PlzWorker
+
+When creating URL loader factories for worker main script loading on
+Plz{Dedicated,Shared}Worker, the current implementation calls
+RegisterNonNetworkSubresourceURLLoaderFactories(). This is weird. To fix it,
+this CL adds RegisterNonNetworkWorkerMainResourceURLLoaderFactories().
+
+This is just code cleanup and doesn't change existing behavior because
+RegisterNonNetworkWorkerMainResourceURLLoaderFactories() does the same thing with
+RegisterNonNetworkSubresourceURLLoaderFactories() (trace the case where
+MSG_ROUTING_NONE is passed as |render_frame_id| to the function).
+
+Change-Id: I61178662125f718c1aea3993b6c68102d743a3bd
+Bug: 906991
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/1798250
+Reviewed-by: Matt Falkenhagen <falken@chromium.org>
+Reviewed-by: Istiaque Ahmed <lazyboy@chromium.org>
+Commit-Queue: Hiroki Nakagawa <nhiroki@chromium.org>
+Cr-Commit-Position: refs/heads/master@{#701781}
+
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+index 2ffef52a24a17b36983df1aab5617e0c831a636f..7d1e28b6d443779fe9eff5acc7150bed90bb6ee7 100644
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -4653,6 +4653,20 @@ void ChromeContentBrowserClient::RegisterNonNetworkNavigationURLLoaderFactories(
+ #endif  // BUILDFLAG(ENABLE_EXTENSIONS) || defined(OS_CHROMEOS)
+ }
+ 
++void ChromeContentBrowserClient::
++    RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
++        content::BrowserContext* browser_context,
++        NonNetworkURLLoaderFactoryMap* factories) {
++#if BUILDFLAG(ENABLE_EXTENSIONS)
++  DCHECK(browser_context);
++  DCHECK(factories);
++  factories->emplace(
++      extensions::kExtensionScheme,
++      extensions::CreateExtensionWorkerMainResourceURLLoaderFactory(
++          browser_context));
++#endif  // BUILDFLAG(ENABLE_EXTENSIONS)
++}
++
+ void ChromeContentBrowserClient::
+     RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
+         content::BrowserContext* browser_context,
+diff --git a/chrome/browser/chrome_content_browser_client.h b/chrome/browser/chrome_content_browser_client.h
+index 4b251ce2bd8917868d3413db3817d9ca8b8e6403..245dfab9edf2e4de956b72be3f7f0ad0dd3fb395 100644
+--- a/chrome/browser/chrome_content_browser_client.h
++++ b/chrome/browser/chrome_content_browser_client.h
+@@ -454,6 +454,9 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
+   void RegisterNonNetworkNavigationURLLoaderFactories(
+       int frame_tree_node_id,
+       NonNetworkURLLoaderFactoryMap* factories) override;
++  void RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
++      content::BrowserContext* browser_context,
++      NonNetworkURLLoaderFactoryMap* factories) override;
+   void RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
+       content::BrowserContext* browser_context,
+       NonNetworkURLLoaderFactoryMap* factories) override;
+diff --git a/content/browser/worker_host/dedicated_worker_host.cc b/content/browser/worker_host/dedicated_worker_host.cc
+index 57848544fbe7bfceeaab9632c962f6db87cc8371..07832fd442061f63ac110404c509677e3c8602f5 100644
+--- a/content/browser/worker_host/dedicated_worker_host.cc
++++ b/content/browser/worker_host/dedicated_worker_host.cc
+@@ -471,6 +471,7 @@ void DedicatedWorkerHost::UpdateSubresourceLoaderFactories() {
+   std::unique_ptr<blink::URLLoaderFactoryBundleInfo>
+       subresource_loader_factories =
+           WorkerScriptFetchInitiator::CreateFactoryBundle(
++              WorkerScriptFetchInitiator::LoaderType::kSubResource,
+               worker_process_id_, storage_partition_impl, storage_domain,
+               file_url_support_, /*filesystem_url_support=*/true);
+ 
+diff --git a/content/browser/worker_host/worker_script_fetch_initiator.cc b/content/browser/worker_host/worker_script_fetch_initiator.cc
+index ad639e360b662500037550fa6d1e77d47add15e5..d4ed30b7a69b089bc350052ffb1162dfa12b75d8 100644
+--- a/content/browser/worker_host/worker_script_fetch_initiator.cc
++++ b/content/browser/worker_host/worker_script_fetch_initiator.cc
+@@ -98,12 +98,12 @@ void WorkerScriptFetchInitiator::Start(
+   // subresource loading.
+   std::unique_ptr<blink::URLLoaderFactoryBundleInfo>
+       factory_bundle_for_browser = CreateFactoryBundle(
+-          worker_process_id, storage_partition, storage_domain,
+-          constructor_uses_file_url, filesystem_url_support);
++          LoaderType::kMainResource, worker_process_id, storage_partition,
++          storage_domain, constructor_uses_file_url, filesystem_url_support);
+   std::unique_ptr<blink::URLLoaderFactoryBundleInfo>
+       subresource_loader_factories = CreateFactoryBundle(
+-          worker_process_id, storage_partition, storage_domain,
+-          constructor_uses_file_url, filesystem_url_support);
++          LoaderType::kSubResource, worker_process_id, storage_partition,
++          storage_domain, constructor_uses_file_url, filesystem_url_support);
+ 
+   // Create a resource request for initiating worker script fetch from the
+   // browser process.
+@@ -177,6 +177,7 @@ void WorkerScriptFetchInitiator::Start(
+ 
+ std::unique_ptr<blink::URLLoaderFactoryBundleInfo>
+ WorkerScriptFetchInitiator::CreateFactoryBundle(
++    LoaderType loader_type,
+     int worker_process_id,
+     StoragePartitionImpl* storage_partition,
+     const std::string& storage_domain,
+@@ -196,10 +197,21 @@ WorkerScriptFetchInitiator::CreateFactoryBundle(
+             worker_process_id, RenderFrameHost::kNoFrameTreeNodeId,
+             storage_partition->GetFileSystemContext(), storage_domain);
+   }
+-  GetContentClient()
+-      ->browser()
+-      ->RegisterNonNetworkSubresourceURLLoaderFactories(
+-          worker_process_id, MSG_ROUTING_NONE, &non_network_factories);
++
++  switch (loader_type) {
++    case LoaderType::kMainResource:
++      GetContentClient()
++          ->browser()
++          ->RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
++              storage_partition->browser_context(), &non_network_factories);
++      break;
++    case LoaderType::kSubResource:
++      GetContentClient()
++          ->browser()
++          ->RegisterNonNetworkSubresourceURLLoaderFactories(
++              worker_process_id, MSG_ROUTING_NONE, &non_network_factories);
++      break;
++  }
+ 
+   auto factory_bundle = std::make_unique<blink::URLLoaderFactoryBundleInfo>();
+   for (auto& pair : non_network_factories) {
+diff --git a/content/browser/worker_host/worker_script_fetch_initiator.h b/content/browser/worker_host/worker_script_fetch_initiator.h
+index 19d61830412abdfa438bb7b5114f85bf85a07e8c..62ab7842f7436a10ae19b43b80a76ac5f83d9f83 100644
+--- a/content/browser/worker_host/worker_script_fetch_initiator.h
++++ b/content/browser/worker_host/worker_script_fetch_initiator.h
+@@ -77,8 +77,12 @@ class WorkerScriptFetchInitiator {
+       const std::string& storage_domain,
+       CompletionCallback callback);
+ 
++  // Used for specifying how URLLoaderFactoryBundle is used.
++  enum class LoaderType { kMainResource, kSubResource };
++
+   // Creates a loader factory bundle. Must be called on the UI thread.
+   static std::unique_ptr<blink::URLLoaderFactoryBundleInfo> CreateFactoryBundle(
++      LoaderType loader_type,
+       int worker_process_id,
+       StoragePartitionImpl* storage_partition,
+       const std::string& storage_domain,
+diff --git a/content/public/browser/content_browser_client.cc b/content/public/browser/content_browser_client.cc
+index c7c2c69ae13702f32df34026f7cba2f362f047a3..0adf4c2892e35d3cf4f44b198ef69588731b4190 100644
+--- a/content/public/browser/content_browser_client.cc
++++ b/content/public/browser/content_browser_client.cc
+@@ -727,6 +727,11 @@ void ContentBrowserClient::RegisterNonNetworkNavigationURLLoaderFactories(
+     int frame_tree_node_id,
+     NonNetworkURLLoaderFactoryMap* factories) {}
+ 
++void ContentBrowserClient::
++    RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
++        BrowserContext* browser_context,
++        NonNetworkURLLoaderFactoryMap* factories) {}
++
+ void ContentBrowserClient::
+     RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
+         BrowserContext* browser_context,
+diff --git a/content/public/browser/content_browser_client.h b/content/public/browser/content_browser_client.h
+index 185b0cfe917ca0ccbb5e20a984162a7f11704881..38d883868f4e7f8fb83b30d1de583b674216c379 100644
+--- a/content/public/browser/content_browser_client.h
++++ b/content/public/browser/content_browser_client.h
+@@ -1211,9 +1211,18 @@ class CONTENT_EXPORT ContentBrowserClient {
+       NonNetworkURLLoaderFactoryMap* factories);
+ 
+   // Allows the embedder to register per-scheme URLLoaderFactory
+-  // implementations to handle service worker script requests initiated by the
+-  // browser process for schemes not handled by the Network Service.
+-  // Only called for service worker update check when
++  // implementations to handle dedicated/shared worker main script requests
++  // initiated by the browser process for schemes not handled by the Network
++  // Service. The resulting |factories| must be used only by the browser
++  // process. The caller must not send any of |factories| to any other process.
++  virtual void RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
++      BrowserContext* browser_context,
++      NonNetworkURLLoaderFactoryMap* factories);
++
++  // Allows the embedder to register per-scheme URLLoaderFactory
++  // implementations to handle service worker main/imported script requests
++  // initiated by the browser process for schemes not handled by the Network
++  // Service. Only called for service worker update check when
+   // ServiceWorkerImportedScriptUpdateCheck is enabled.
+   // The resulting |factories| must be used only by the browser process. The
+   // caller must not send any of |factories| to any other process.
+diff --git a/extensions/browser/extension_protocols.cc b/extensions/browser/extension_protocols.cc
+index ef8257bc44babd9eec69e70d44c24a60c8cda1f2..3eab2376fd93c0904877001bdb95525cb7261753 100644
+--- a/extensions/browser/extension_protocols.cc
++++ b/extensions/browser/extension_protocols.cc
+@@ -16,6 +16,7 @@
+ #include "base/base64.h"
+ #include "base/bind.h"
+ #include "base/compiler_specific.h"
++#include "base/feature_list.h"
+ #include "base/files/file_path.h"
+ #include "base/files/file_util.h"
+ #include "base/format_macros.h"
+@@ -77,6 +78,7 @@
+ #include "net/http/http_response_info.h"
+ #include "services/network/public/cpp/resource_response.h"
+ #include "services/network/public/cpp/url_loader_completion_status.h"
++#include "third_party/blink/public/common/features.h"
+ #include "url/url_util.h"
+ 
+ using content::BrowserContext;
+@@ -197,11 +199,16 @@ bool AllowExtensionResourceLoad(const GURL& url,
+ 
+   // Frame navigations to extensions have already been checked in
+   // the ExtensionNavigationThrottle.
++  // Dedicated Worker (with PlzDedicatedWorker) and Shared Worker main scripts
++  // can be loaded with extension URLs in browser process.
+   // Service Worker and the imported scripts can be loaded with extension URLs
+   // in browser process during update check when
+   // ServiceWorkerImportedScriptUpdateCheck is enabled.
+   if (child_id == -1 &&
+       (content::IsResourceTypeFrame(resource_type) ||
++       (base::FeatureList::IsEnabled(blink::features::kPlzDedicatedWorker) &&
++        resource_type == content::ResourceType::kWorker) ||
++       resource_type == content::ResourceType::kSharedWorker ||
+        resource_type == content::ResourceType::kScript ||
+        resource_type == content::ResourceType::kServiceWorker)) {
+     return true;
+@@ -653,6 +660,13 @@ CreateExtensionNavigationURLLoaderFactory(
+                                                      is_web_view_request);
+ }
+ 
++std::unique_ptr<network::mojom::URLLoaderFactory>
++CreateExtensionWorkerMainResourceURLLoaderFactory(
++    content::BrowserContext* browser_context) {
++  return std::make_unique<ExtensionURLLoaderFactory>(
++      browser_context, /*is_web_view_request=*/false);
++}
++
+ std::unique_ptr<network::mojom::URLLoaderFactory>
+ CreateExtensionServiceWorkerScriptURLLoaderFactory(
+     content::BrowserContext* browser_context) {
+diff --git a/extensions/browser/extension_protocols.h b/extensions/browser/extension_protocols.h
+index 825047cbe7340b76026185c21908d0c6ad593739..b95b223a4fca61dca336068f4979286799163094 100644
+--- a/extensions/browser/extension_protocols.h
++++ b/extensions/browser/extension_protocols.h
+@@ -51,8 +51,15 @@ CreateExtensionNavigationURLLoaderFactory(
+     bool is_web_view_request);
+ 
+ // Creates a new network::mojom::URLLoaderFactory implementation suitable for
+-// handling service worker script requests initiated by the browser process to
+-// extension URLs during service worker update check when
++// handling dedicated/shared worker main script requests initiated by the
++// browser process to extension URLs.
++std::unique_ptr<network::mojom::URLLoaderFactory>
++CreateExtensionWorkerMainResourceURLLoaderFactory(
++    content::BrowserContext* browser_context);
++
++// Creates a new network::mojom::URLLoaderFactory implementation suitable for
++// handling service worker main/imported script requests initiated by the
++// browser process to extension URLs during service worker update check when
+ // ServiceWorkerImportedScriptUpdateCheck is enabled.
+ std::unique_ptr<network::mojom::URLLoaderFactory>
+ CreateExtensionServiceWorkerScriptURLLoaderFactory(
+diff --git a/extensions/shell/browser/shell_content_browser_client.cc b/extensions/shell/browser/shell_content_browser_client.cc
+index 21bd10ac80084541f89c53525df130c06c7625f7..4b1c50f9eb615ae4b8d34b582b957fb47ec73881 100644
+--- a/extensions/shell/browser/shell_content_browser_client.cc
++++ b/extensions/shell/browser/shell_content_browser_client.cc
+@@ -280,6 +280,18 @@ void ShellContentBrowserClient::RegisterNonNetworkNavigationURLLoaderFactories(
+           !!extensions::WebViewGuest::FromWebContents(web_contents)));
+ }
+ 
++void ShellContentBrowserClient::
++    RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
++        content::BrowserContext* browser_context,
++        NonNetworkURLLoaderFactoryMap* factories) {
++  DCHECK(browser_context);
++  DCHECK(factories);
++  factories->emplace(
++      extensions::kExtensionScheme,
++      extensions::CreateExtensionWorkerMainResourceURLLoaderFactory(
++          browser_context));
++}
++
+ void ShellContentBrowserClient::
+     RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
+         content::BrowserContext* browser_context,
+diff --git a/extensions/shell/browser/shell_content_browser_client.h b/extensions/shell/browser/shell_content_browser_client.h
+index c7c595d22a742ff62e082725294c263dc4bbcaa6..7ce0310ef5c79f3e054c4de5bbc43a40a7ecc5d7 100644
+--- a/extensions/shell/browser/shell_content_browser_client.h
++++ b/extensions/shell/browser/shell_content_browser_client.h
+@@ -69,6 +69,9 @@ class ShellContentBrowserClient : public content::ContentBrowserClient {
+   void RegisterNonNetworkNavigationURLLoaderFactories(
+       int frame_tree_node_id,
+       NonNetworkURLLoaderFactoryMap* factories) override;
++  void RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
++      content::BrowserContext* browser_context,
++      NonNetworkURLLoaderFactoryMap* factories) override;
+   void RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
+       content::BrowserContext* browser_context,
+       NonNetworkURLLoaderFactoryMap* factories) override;

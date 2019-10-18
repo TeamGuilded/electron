@@ -193,11 +193,11 @@ bool AtomRendererClient::ShouldFork(blink::WebLocalFrame* frame,
   return http_method == "GET";
 }
 
-void AtomRendererClient::DidInitializeWorkerContextOnWorkerThread(
+void AtomRendererClient::WorkerScriptReadyForEvaluationOnWorkerThread(
     v8::Local<v8::Context> context) {
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
           switches::kNodeIntegrationInWorker)) {
-    WebWorkerObserver::GetCurrent()->ContextCreated(context);
+    WebWorkerObserver::GetCurrent()->WorkerScriptReadyForEvaluation(context);
   }
 }
 

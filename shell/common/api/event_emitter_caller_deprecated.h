@@ -50,7 +50,7 @@ v8::Local<v8::Value> EmitEvent(v8::Isolate* isolate,
                                Args&&... args) {
   internal::ValueVector converted_args = {
       StringToV8(isolate, name),
-      ConvertToV8(isolate, std::forward<Args>(args))...,
+      mate::ConvertToV8(isolate, std::forward<Args>(args))...,
   };
   return internal::CallMethodWithArgs(isolate, obj, "emit", &converted_args);
 }
@@ -62,7 +62,7 @@ v8::Local<v8::Value> CustomEmit(v8::Isolate* isolate,
                                 const char* custom_emit,
                                 Args&&... args) {
   internal::ValueVector converted_args = {
-      ConvertToV8(isolate, std::forward<Args>(args))...,
+      mate::ConvertToV8(isolate, std::forward<Args>(args))...,
   };
   return internal::CallMethodWithArgs(isolate, object, custom_emit,
                                       &converted_args);

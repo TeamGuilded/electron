@@ -6,6 +6,7 @@
 #define NATIVE_MATE_NATIVE_MATE_HANDLE_H_
 
 #include "native_mate/converter.h"
+#include "gin/handle.h"
 
 namespace mate {
 
@@ -56,6 +57,29 @@ struct Converter<mate::Handle<T>> {
     }
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     *out = mate::Handle<T>(val->ToObject(context).ToLocalChecked(), object);
+    return true;
+  }
+};
+
+template <typename T>
+struct Converter<gin::Handle<T>> {
+  static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
+                                   const gin::Handle<T>& val) {
+    return val.ToV8();
+  }
+  static bool FromV8(v8::Isolate* isolate,
+                     v8::Local<v8::Value> val,
+                     gin::Handle<T>* out) {
+    T* object = NULL;
+    if (val->IsNull() || val->IsUndefined()) {
+      *out = gin::Handle<T>();
+      return true;
+    }
+    if (!gin::Converter<T*>::FromV8(isolate, val, &object)) {
+      return false;
+    }
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    *out = gin::Handle<T>(val->ToObject(context).ToLocalChecked(), object);
     return true;
   }
 };

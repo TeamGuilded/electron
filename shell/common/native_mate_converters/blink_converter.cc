@@ -26,6 +26,9 @@
 #include "ui/base/clipboard/clipboard.h"
 #include "ui/events/keycodes/dom/keycode_converter.h"
 #include "ui/events/keycodes/keyboard_code_conversion.h"
+#include "third_party/blink/renderer/platform/bindings/wrapper_type_info.h"
+#include "third_party/blink/renderer/platform/bindings/script_wrappable.h"
+#include "third_party/blink/renderer/bindings/core/v8/v8_message_port.h"
 
 namespace {
 
@@ -557,15 +560,9 @@ class V8Serializer : public v8::ValueSerializer::Delegate {
     } else {
       WriteTag(kNewSerializationTag);
       bool wrote_value;
-      v8::TryCatch try_catch(isolate_);
       if (!serializer_.WriteValue(isolate_->GetCurrentContext(), value)
                .To(&wrote_value)) {
-        try_catch.Reset();
-        if (!V8Serializer(isolate_, true).Serialize(value, out)) {
-          try_catch.ReThrow();
-          return false;
-        }
-        return true;
+        return false;
       }
       DCHECK(wrote_value);
     }

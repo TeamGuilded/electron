@@ -5,6 +5,7 @@
 #include "shell/common/application_info.h"
 
 #include "base/no_destructor.h"
+#include "base/path_service.h"
 #include "base/strings/stringprintf.h"
 #include "chrome/common/chrome_version.h"
 #include "content/public/common/user_agent.h"
@@ -23,6 +24,7 @@ base::NoDestructor<std::string> g_overridden_application_version;
 // name
 void OverrideApplicationName(const std::string& name) {
   *g_overridden_application_name = name;
+  base::PathService::InvalidateCache();
 }
 std::string GetOverriddenApplicationName() {
   return *g_overridden_application_name;

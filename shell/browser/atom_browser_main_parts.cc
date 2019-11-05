@@ -153,6 +153,9 @@ bool g_in_x11_io_error_handler = false;
 // the background thread.
 const int kWaitForUIThreadSeconds = 10;
 
+// FIXME: disabled for proof-of-concept test of RegisterAtomPathProvider
+// Not intended for merging in current state.
+#if 0
 void OverrideLinuxAppDataPath() {
   base::FilePath path;
   if (base::PathService::Get(DIR_APP_DATA, &path))
@@ -162,6 +165,7 @@ void OverrideLinuxAppDataPath() {
                                     base::nix::kDotConfigDir);
   base::PathService::Override(DIR_APP_DATA, path);
 }
+#endif
 
 int BrowserX11ErrorHandler(Display* d, XErrorEvent* error) {
   if (!g_in_x11_io_error_handler && base::ThreadTaskRunnerHandle::IsSet()) {
@@ -273,7 +277,7 @@ int AtomBrowserMainParts::PreEarlyInitialization() {
   field_trial_list_ = std::make_unique<base::FieldTrialList>(nullptr);
 #if defined(USE_X11)
   views::LinuxUI::SetInstance(BuildGtkUi());
-  OverrideLinuxAppDataPath();
+  // OverrideLinuxAppDataPath();
 
   // Installs the X11 error handlers for the browser process used during
   // startup. They simply print error messages and exit because

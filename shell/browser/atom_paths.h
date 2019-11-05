@@ -22,28 +22,46 @@ namespace electron {
 enum {
   PATH_START = 11000,
 
-  DIR_USER_DATA = PATH_START,  // Directory where user data can be written.
-  DIR_USER_CACHE,              // Directory where user cache can be written.
-  DIR_APP_LOGS,                // Directory where app logs live
+  /**
+   * Top-level directory under which apps can write their data,
+   * e.g. XDG_CONFIG_HOME, '~/Library/Application Support', %APPDATA%
+   * Note 1: Apps generally should use DIR_USER_DATA intead.
+   * Note 2: Not to be confused with base::DIR_APP_DATA, which is
+   * similar but not available on all platforms.
+   */
+  DIR_APP_DATA = PATH_START,
 
-#if defined(OS_LINUX)
-  DIR_APP_DATA,  // Application Data directory under the user profile.
-#endif
+  /**
+   * Directory where apps can write their data.
+   * Default: `DIR_APP_DATA/appname`
+   */
+  DIR_USER_DATA,
 
-  PATH_END,  // End of new paths. Those that follow redirect to base::DIR_*
+  /**
+   * Top-level directory under which apps can write their cache data,
+   * e.g. XDG_CACHE_HOME, NSCachesDirectory, or DIR_APP_DATA
+   * Note 1: Apps generally should use DIR_USER_CACHE instead.
+   * Note 2: Not to be confused with base::DIR_CACHE, which is
+   * similar but not available on all platforms.
+   */
+  DIR_CACHE,
 
-#if !defined(OS_LINUX)
-  DIR_APP_DATA = base::DIR_APP_DATA,
-#endif
+  /**
+   * Directory where apps can write their cache data.
+   * Default: `DIR_CACHE/appname`
+   */
+  DIR_USER_CACHE,
 
-#if defined(OS_POSIX)
-  DIR_CACHE = base::DIR_CACHE  // Directory where to put cache data.
-#else
-  DIR_CACHE = base::DIR_APP_DATA
-#endif
+  /**
+   * Directory where apps can write their logs.
+   * Default: `DIR_USER_DATA/logs`
+   */
+  DIR_APP_LOGS,
+
+  PATH_END
 };
 
-static_assert(PATH_START < PATH_END, "invalid PATH boundaries");
+void RegisterAtomPathProvider();
 
 }  // namespace electron
 

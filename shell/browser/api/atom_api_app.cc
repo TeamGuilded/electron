@@ -554,6 +554,9 @@ App::App(v8::Isolate* isolate) {
       base::ProcessMetrics::CreateCurrentProcessMetrics());
   app_metrics_[pid] = std::move(process_metric);
   Init(isolate);
+
+  RegisterAtomPathProvider();  // FIXME: there is probably a better place for
+                               // this.
 }
 
 App::~App() {
@@ -874,6 +877,10 @@ base::FilePath App::GetPath(gin_helper::ErrorThrower thrower,
   int key = GetPathConstant(name);
   if (key >= 0) {
     succeed = base::PathService::Get(key, &path);
+#if 0
+    // FIXME: disabled for proof-of-concept test of RegisterAtomPathProvider
+    // Not intended for merging in current state.
+
     // If users try to get the logs path before setting a logs path,
     // set the path to a sensible default and then try to get it again
     if (!succeed && name == "logs") {
@@ -881,6 +888,7 @@ base::FilePath App::GetPath(gin_helper::ErrorThrower thrower,
       SetAppLogsPath(thrower, base::Optional<base::FilePath>());
       succeed = base::PathService::Get(key, &path);
     }
+#endif
   }
 
   if (!succeed)

@@ -62,3 +62,13 @@ Creates a [`ClientRequest`](./client-request.md) instance using the provided
 `options` which are directly forwarded to the `ClientRequest` constructor.
 The `net.request` method would be used to issue both secure and insecure HTTP
 requests according to the specified protocol scheme in the `options` object.
+
+### `net.isOnline()`
+
+Returns `Boolean` - Whether there is currently internet connection.
+
+A return value of `false` is a pretty strong indicator that the user
+won't be able to connect to remote sites. However, a return value of
+`true` is inconclusive; even if some link is up, it is uncertain
+whether a particular connection attempt to a particular remote site
+will be successful.

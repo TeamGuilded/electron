@@ -41,6 +41,7 @@ The Electron team is currently undergoing an initiative to convert separate gett
   * `fullscreenable`
   * `movable`
   * `closable`
+  * `backgroundThrottling`
 * `NativeImage`
   * `isMacTemplateImage`
 * `SystemPreferences` module
@@ -51,3 +52,4 @@ The Electron team is currently undergoing an initiative to convert separate gett
   * `userAgent`
   * `zoomFactor`
   * `zoomLevel`
+  * `backgroundThrottling`

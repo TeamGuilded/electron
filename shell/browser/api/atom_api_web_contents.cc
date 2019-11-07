@@ -1282,6 +1282,10 @@ void WebContents::NavigationEntryCommitted(
        details.is_same_document, details.did_replace_entry);
 }
 
+bool WebContents::GetBackgroundThrottling() const {
+  return background_throttling_;
+}
+
 void WebContents::SetBackgroundThrottling(bool allowed) {
   background_throttling_ = allowed;
 
@@ -2476,7 +2480,9 @@ void WebContents::BuildPrototype(v8::Isolate* isolate,
   prototype->SetClassName(gin::StringToV8(isolate, "WebContents"));
   gin_helper::Destroyable::MakeDestroyable(isolate, prototype);
   gin_helper::ObjectTemplateBuilder(isolate, prototype->PrototypeTemplate())
-      .SetMethod("setBackgroundThrottling",
+      .SetMethod("_getBackgroundThrottling",
+                 &WebContents::GetBackgroundThrottling)
+      .SetMethod("_setBackgroundThrottling",
                  &WebContents::SetBackgroundThrottling)
       .SetMethod("getProcessId", &WebContents::GetProcessID)
       .SetMethod("getOSProcessId", &WebContents::GetOSProcessID)

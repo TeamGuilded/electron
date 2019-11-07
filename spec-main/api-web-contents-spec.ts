@@ -1361,19 +1361,22 @@ describe('webContents module', () => {
     afterEach(closeAllWindows)
     it('does not crash when allowing', () => {
       const w = new BrowserWindow({ show: false })
-      w.webContents.setBackgroundThrottling(true)
+      w.webContents.backgroundThrottling = true
+      expect(w.webContents.backgroundThrottling).to.equal(true)
     })
 
     it('does not crash when called via BrowserWindow', () => {
       const w = new BrowserWindow({ show: false });
 
-      (w as any).setBackgroundThrottling(true)
+      (w as any).backgroundThrottling = true
+      expect((w as any).backgroundThrottling).to.equal(true)
     })
 
     it('does not crash when disallowing', () => {
       const w = new BrowserWindow({ show: false, webPreferences: { backgroundThrottling: true } })
 
-      w.webContents.setBackgroundThrottling(false)
+      w.webContents.backgroundThrottling = false
+      expect(w.webContents.backgroundThrottling).to.equal(false)
     })
   })
 

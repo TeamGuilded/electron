@@ -63,6 +63,12 @@ machine-linux-2xlarge: &machine-linux-2xlarge
   <<: *docker-image
   resource_class: 2xlarge
 
+machine-windows-xlarge: &machine-windows-xlarge
+  machine:
+    image: 'windows-server-2019-vs2019:stable'
+    resource_class: windows.xlarge
+    shell: bash.exe
+
 machine-mac: &machine-mac
   macos:
     xcode: "10.3.0"
@@ -1385,6 +1391,19 @@ jobs:
           persist: true
           checkout: true
 
+  windows-x64-testing:
+    <<: *machine-windows-xlarge
+    environment:
+      <<: *env-linux-2xlarge
+      <<: *env-testing-build
+      <<: *env-enable-sccache
+      <<: *env-ninja-status
+      GCLIENT_EXTRA_ARGS: '--custom-var=checkout_arm=True --custom-var=checkout_arm64=True'
+    steps:
+      - electron-build:
+          persist: true
+          checkout: true
+
   linux-x64-testing-no-run-as-node:
     <<: *machine-linux-2xlarge
     environment:
@@ -2023,6 +2042,10 @@ workflows:
           requires:
             - linux-checkout-fast
       - ts-compile-doc-change
+
+  build-win:
+    jobs:
+      - windows-x64-testing
 
   build-mac:
     when: << pipeline.parameters.run-build-mac >>

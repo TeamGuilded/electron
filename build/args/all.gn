@@ -7,6 +7,7 @@ node_module_version = 76
 v8_promise_internal_field_count = 1
 v8_typed_array_max_size_in_heap = 0
 v8_embedder_string = "-electron.0"
+v8_enable_pointer_compression = true
 
 # TODO: this breaks mksnapshot
 v8_enable_snapshot_native_code_counters = false

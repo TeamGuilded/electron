@@ -40,7 +40,8 @@ class AtomJavaScriptDialogManager : public content::JavaScriptDialogManager {
   void OnMessageBoxCallback(DialogClosedCallback callback,
                             const std::string& origin,
                             int code,
-                            bool checkbox_checked);
+                            bool checkbox_checked,
+                            const base::string16& user_input);
 
   api::WebContents* api_web_contents_;
   std::map<std::string, int> origin_counts_;

@@ -56,7 +56,8 @@ void AtomJavaScriptDialogManager::RunJavaScriptDialog(
   }
 
   if (dialog_type != JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_ALERT &&
-      dialog_type != JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_CONFIRM) {
+      dialog_type != JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_CONFIRM &&
+      dialog_type != JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_PROMPT) {
     std::move(callback).Run(false, base::string16());
     return;
   }
@@ -66,7 +67,8 @@ void AtomJavaScriptDialogManager::RunJavaScriptDialog(
   int cancel_id = 0;
 
   std::vector<std::string> buttons = {"OK"};
-  if (dialog_type == JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_CONFIRM) {
+  if (dialog_type == JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_CONFIRM ||
+      dialog_type == JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_PROMPT) {
     buttons.emplace_back("Cancel");
     // First button is default, second button is cancel
     default_id = 0;
@@ -98,6 +100,11 @@ void AtomJavaScriptDialogManager::RunJavaScriptDialog(
   settings.cancel_id = cancel_id;
   settings.message = base::UTF16ToUTF8(message_text);
 
+  if (dialog_type == JavaScriptDialogType::JAVASCRIPT_DIALOG_TYPE_PROMPT) {
+    settings.has_input = true;
+    settings.default_input_text = base::UTF16ToUTF8(default_prompt_text);
+  }
+
   electron::ShowMessageBox(
       settings,
       base::BindOnce(&AtomJavaScriptDialogManager::OnMessageBoxCallback,
@@ -123,10 +130,11 @@ void AtomJavaScriptDialogManager::OnMessageBoxCallback(
     DialogClosedCallback callback,
     const std::string& origin,
     int code,
-    bool checkbox_checked) {
+    bool checkbox_checked,
+    const base::string16& user_input) {
   if (checkbox_checked)
     origin_counts_[origin] = kUserWantsNoMoreDialogs;
-  std::move(callback).Run(code == 0, base::string16());
+  std::move(callback).Run(code == 0, user_input);
 }
 
 }  // namespace electron

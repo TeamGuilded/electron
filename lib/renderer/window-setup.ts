@@ -203,11 +203,6 @@ export const windowSetup = (
     }
   }
 
-  // But we do not support prompt().
-  window.prompt = function () {
-    throw new Error('prompt() is and will not be supported.')
-  }
-
   ipcRendererInternal.on('ELECTRON_GUEST_WINDOW_POSTMESSAGE', function (
     _event, sourceId: number, message: any, sourceOrigin: string
   ) {

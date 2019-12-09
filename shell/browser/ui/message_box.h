@@ -39,6 +39,8 @@ struct MessageBoxSettings {
   std::string detail;
   std::string checkbox_label;
   bool checkbox_checked = false;
+  bool has_input = true;
+  std::string default_input_text;
   gfx::ImageSkia icon;
 
   MessageBoxSettings();
@@ -48,7 +50,8 @@ struct MessageBoxSettings {
 
 int ShowMessageBoxSync(const MessageBoxSettings& settings);
 
-typedef base::OnceCallback<void(int code, bool checkbox_checked)>
+typedef base::OnceCallback<
+    void(int code, bool checkbox_checked, const base::string16& user_input)>
     MessageBoxCallback;
 
 void ShowMessageBox(const MessageBoxSettings& settings,

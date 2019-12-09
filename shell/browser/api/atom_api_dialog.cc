@@ -27,12 +27,14 @@ int ShowMessageBoxSync(const electron::MessageBoxSettings& settings) {
 
 void ResolvePromiseObject(gin_helper::Promise<gin_helper::Dictionary> promise,
                           int result,
-                          bool checkbox_checked) {
+                          bool checkbox_checked,
+                          const base::string16& user_input) {
   v8::Isolate* isolate = promise.isolate();
   gin_helper::Dictionary dict = gin::Dictionary::CreateEmpty(isolate);
 
   dict.Set("response", result);
   dict.Set("checkboxChecked", checkbox_checked);
+  dict.Set("userInput", user_input);
 
   promise.Resolve(dict);
 }

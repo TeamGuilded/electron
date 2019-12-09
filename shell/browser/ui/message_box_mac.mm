@@ -80,6 +80,15 @@ NSAlert* CreateNSAlert(const MessageBoxSettings& settings) {
         settings.checkbox_checked ? NSOnState : NSOffState;
   }
 
+  if (settings.has_input) {
+    NSTextField* input =
+        [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 200, 24)];
+    [input setStringValue:base::SysUTF8ToNSString(settings.default_input_text)];
+    [input autorelease];
+    [alert setAccessoryView:input];
+    [[alert window] setInitialFirstResponder:input];
+  }
+
   if (!settings.icon.isNull()) {
     NSImage* image = skia::SkBitmapToNSImageWithColorSpace(
         *settings.icon.bitmap(), base::mac::GetGenericRGBColorSpace());
@@ -121,7 +130,13 @@ void ShowMessageBox(const MessageBoxSettings& settings,
   // window to wait for.
   if (!settings.parent_window) {
     int ret = [[alert autorelease] runModal];
-    std::move(callback).Run(ret, alert.suppressionButton.state == NSOnState);
+    base::string16 user_input;
+    if (settings.has_input) {
+      user_input = base::SysNSStringToUTF16(
+          [static_cast<NSTextField*>(alert.accessoryView) stringValue]);
+    }
+    std::move(callback).Run(ret, alert.suppressionButton.state == NSOnState,
+                            user_input);
   } else {
     NSWindow* window =
         settings.parent_window
@@ -134,8 +149,15 @@ void ShowMessageBox(const MessageBoxSettings& settings,
 
     [alert beginSheetModalForWindow:window
                   completionHandler:^(NSModalResponse response) {
+                    base::string16 user_input;
+                    if (settings.has_input) {
+                      user_input = base::SysNSStringToUTF16(
+                          [static_cast<NSTextField*>(alert.accessoryView)
+                              stringValue]);
+                    }
                     std::move(callback_).Run(
-                        response, alert.suppressionButton.state == NSOnState);
+                        response, alert.suppressionButton.state == NSOnState,
+                        user_input);
                   }];
   }
 }

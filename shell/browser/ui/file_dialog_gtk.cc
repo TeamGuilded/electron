@@ -51,15 +51,21 @@ class FileChooserDialog {
         filters_(settings.filters) {
     const char* confirm_text = gtk_util::kOkLabel;
 
-    if (!settings.button_label.empty())
-      confirm_text = settings.button_label.c_str();
+    // Set custom confirmation label.
+    if (!settings.ok_button_label.empty())
+      confirm_text = settings.ok_button_label.c_str();
     else if (action == GTK_FILE_CHOOSER_ACTION_SAVE)
       confirm_text = gtk_util::kSaveLabel;
     else if (action == GTK_FILE_CHOOSER_ACTION_OPEN)
       confirm_text = gtk_util::kOpenLabel;
 
+    // Set custom cancellation label.
+    const char* cancel_text = gtk_util::kCancelLabel;
+    if (!settings.cancel_button_label.empty())
+      confirm_text = settings.cancel_button_label.c_str();
+
     dialog_ = gtk_file_chooser_dialog_new(
-        settings.title.c_str(), nullptr, action, gtk_util::kCancelLabel,
+        settings.title.c_str(), nullptr, action, cancel_text,
         GTK_RESPONSE_CANCEL, confirm_text, GTK_RESPONSE_ACCEPT, NULL);
     if (parent_) {
       parent_->SetEnabled(false);

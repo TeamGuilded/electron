@@ -47,7 +47,8 @@ struct DialogSettings {
   electron::NativeWindow* parent_window = nullptr;
   std::string title;
   std::string message;
-  std::string button_label;
+  std::string ok_button_label;
+  std::string cancel_button_label;
   std::string name_field_label;
   base::FilePath default_path;
   Filters filters;

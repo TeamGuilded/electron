@@ -45,7 +45,8 @@ bool Converter<file_dialog::DialogSettings>::FromV8(
   dict.Get("window", &(out->parent_window));
   dict.Get("title", &(out->title));
   dict.Get("message", &(out->message));
-  dict.Get("buttonLabel", &(out->button_label));
+  dict.Get("okButtonLabel", &(out->ok_button_label));
+  dict.Get("cancelButtonLabel", &(out->cancel_button_label));
   dict.Get("nameFieldLabel", &(out->name_field_label));
   dict.Get("defaultPath", &(out->default_path));
   dict.Get("filters", &(out->filters));
@@ -64,7 +65,8 @@ v8::Local<v8::Value> Converter<file_dialog::DialogSettings>::ToV8(
            electron::api::BrowserWindow::From(isolate, in.parent_window));
   dict.Set("title", in.title);
   dict.Set("message", in.message);
-  dict.Set("buttonLabel", in.button_label);
+  dict.Set("okButtonLabel", in.ok_button_label);
+  dict.Set("cancelButtonLabel", in.cancel_button_label);
   dict.Set("nameFieldLabel", in.name_field_label);
   dict.Set("defaultPath", in.default_path);
   dict.Set("filters", in.filters);

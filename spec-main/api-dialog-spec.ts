@@ -27,7 +27,7 @@ describe('dialog module', () => {
       }).to.throw(/Title must be a string/)
 
       expect(() => {
-        dialog.showOpenDialog({ buttonLabel: [] as any })
+        dialog.showOpenDialog({ okButtonLabel: [] as any })
       }).to.throw(/Button label must be a string/)
 
       expect(() => {
@@ -59,8 +59,12 @@ describe('dialog module', () => {
       }).to.throw(/Title must be a string/)
 
       expect(() => {
-        dialog.showSaveDialog({ buttonLabel: [] as any })
-      }).to.throw(/Button label must be a string/)
+        dialog.showSaveDialog({ okButtonLabel: [] as any })
+      }).to.throw(/Confirmation button label must be a string/)
+
+      expect(() => {
+        dialog.showSaveDialog({ cancelButtonLabel: [] as any })
+      }).to.throw(/Cancellation button label must be a string/)
 
       expect(() => {
         dialog.showSaveDialog({ defaultPath: {} as any })

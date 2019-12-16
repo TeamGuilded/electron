@@ -147,7 +147,7 @@ static HRESULT GetFileNameFromShellItem(IShellItem* pShellItem,
   return hRet;
 }
 
-static void SetDefaultFolder(IFileDialog* dialog,
+static void SetDefaultFolder(IFileDialog2* dialog,
                              const base::FilePath file_path) {
   std::wstring directory =
       IsDirectory(file_path) ? file_path.value() : file_path.DirName().value();
@@ -159,7 +159,7 @@ static void SetDefaultFolder(IFileDialog* dialog,
     dialog->SetFolder(folder_item);
 }
 
-static HRESULT ShowFileDialog(IFileDialog* dialog,
+static HRESULT ShowFileDialog(IFileDialog2* dialog,
                               const DialogSettings& settings) {
   electron::UnresponsiveSuppressor suppressor;
   HWND parent_window =
@@ -171,7 +171,8 @@ static HRESULT ShowFileDialog(IFileDialog* dialog,
   return dialog->Show(parent_window);
 }
 
-static void ApplySettings(IFileDialog* dialog, const DialogSettings& settings) {
+static void ApplySettings(IFileDialog2* dialog,
+                          const DialogSettings& settings) {
   std::wstring file_part;
 
   if (!IsDirectory(settings.default_path))
@@ -182,8 +183,13 @@ static void ApplySettings(IFileDialog* dialog, const DialogSettings& settings) {
   if (!settings.title.empty())
     dialog->SetTitle(base::UTF8ToUTF16(settings.title).c_str());
 
-  if (!settings.button_label.empty())
-    dialog->SetOkButtonLabel(base::UTF8ToUTF16(settings.button_label).c_str());
+  if (!settings.ok_button_label.empty())
+    dialog->SetOkButtonLabel(
+        base::UTF8ToUTF16(settings.ok_button_label).c_str());
+
+  if (!settings.cancel_button_label.empty())
+    dialog->SetCancelButtonLabel(
+        base::UTF8ToUTF16(settings.cancel_button_label).c_str());
 
   std::vector<std::wstring> buffer;
   std::vector<COMDLG_FILTERSPEC> filterspec;

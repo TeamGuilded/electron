@@ -145,8 +145,8 @@ void SetupDialog(NSSavePanel* dialog, const DialogSettings& settings) {
   if (!settings.title.empty())
     [dialog setTitle:base::SysUTF8ToNSString(settings.title)];
 
-  if (!settings.button_label.empty())
-    [dialog setPrompt:base::SysUTF8ToNSString(settings.button_label)];
+  if (!settings.ok_button_label.empty())
+    [dialog setPrompt:base::SysUTF8ToNSString(settings.ok_button_label)];
 
   if (!settings.message.empty())
     [dialog setMessage:base::SysUTF8ToNSString(settings.message)];

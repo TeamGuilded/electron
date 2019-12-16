@@ -29,7 +29,7 @@ The `dialog` module has the following methods:
 * `options` Object
   * `title` String (optional)
   * `defaultPath` String (optional)
-  * `buttonLabel` String (optional) - Custom label for the confirmation button, when
+  * `okButtonLabel` String (optional) - Custom label for the confirmation button; when
     left empty the default label will be used.
   * `filters` [FileFilter[]](structures/file-filter.md) (optional)
   * `properties` String[] (optional) - Contains which features the dialog should
@@ -92,8 +92,8 @@ dialog.showOpenDialogSync(mainWindow, {
 * `options` Object
   * `title` String (optional)
   * `defaultPath` String (optional)
-  * `buttonLabel` String (optional) - Custom label for the confirmation button, when
-    left empty the default label will be used.
+  * `okButtonLabel` String (optional) - Custom label for the confirmation button; when left empty the default label will be used.
+  * `cancelButtonLabel` String (optional) _Windows_ - Custom label for the cancel button; when left empty the default label will be used.
   * `filters` [FileFilter[]](structures/file-filter.md) (optional)
   * `properties` String[] (optional) - Contains which features the dialog should
     use. The following values are supported:
@@ -165,8 +165,8 @@ dialog.showOpenDialog(mainWindow, {
   * `title` String (optional)
   * `defaultPath` String (optional) - Absolute directory path, absolute file
     path, or file name to use by default.
-  * `buttonLabel` String (optional) - Custom label for the confirmation button, when
-    left empty the default label will be used.
+  * `okButtonLabel` String (optional) - Custom label for the confirmation button; when left empty the default label will be used.
+  * `cancelButtonLabel` String (optional) _Windows_ - Custom label for the cancel button; when left empty the default label will be used.
   * `filters` [FileFilter[]](structures/file-filter.md) (optional)
   * `message` String (optional) _macOS_ - Message to display above text fields.
   * `nameFieldLabel` String (optional) _macOS_ - Custom label for the text
@@ -196,8 +196,8 @@ The `filters` specifies an array of file types that can be displayed, see
   * `title` String (optional)
   * `defaultPath` String (optional) - Absolute directory path, absolute file
     path, or file name to use by default.
-  * `buttonLabel` String (optional) - Custom label for the confirmation button, when
-    left empty the default label will be used.
+  * `okButtonLabel` String (optional) - Custom label for the confirmation button; when left empty the default label will be used.
+  * `cancelButtonLabel` String (optional) _Windows_ - Custom label for the cancel button; when left empty the default label will be used.
   * `filters` [FileFilter[]](structures/file-filter.md) (optional)
   * `message` String (optional) _macOS_ - Message to display above text fields.
   * `nameFieldLabel` String (optional) _macOS_ - Custom label for the text

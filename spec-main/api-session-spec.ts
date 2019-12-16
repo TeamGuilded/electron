@@ -736,7 +736,8 @@ describe('session module', () => {
         window: null,
         title: 'title',
         message: 'message',
-        buttonLabel: 'buttonLabel',
+        okButtonLabel: 'ok',
+        cancelButtonLabel: 'cancel',
         nameFieldLabel: 'nameFieldLabel',
         defaultPath: '/',
         filters: [{

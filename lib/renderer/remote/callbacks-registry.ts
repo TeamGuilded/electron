@@ -1,4 +1,5 @@
 const v8Util = process.electronBinding('v8_util')
+const reflectApply = Reflect.apply
 
 export class CallbacksRegistry {
   private nextId: number = 0
@@ -41,8 +42,8 @@ export class CallbacksRegistry {
     return this.callbacks.get(id) || function () {}
   }
 
-  apply (id: number, ...args: any[]) {
-    return this.get(id).apply(global, ...args)
+  apply (id: number, args: any[]) {
+    return reflectApply(this.get(id), global, args)
   }
 
   remove (id: number) {

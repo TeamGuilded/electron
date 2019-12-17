@@ -1,3 +1,5 @@
+const reflectApply = Reflect.apply
+
 let deprecationHandler: ElectronInternal.DeprecationHandler | null = null
 
 function warnOnce (oldName: string, newName?: string) {
@@ -42,7 +44,7 @@ const deprecate: ElectronInternal.DeprecationUtil = {
     const warn = warnOnce(`${fn.name} function`)
     return function (this: any) {
       warn()
-      fn.apply(this, arguments)
+      reflectApply(fn, this, arguments)
     }
   },
 
@@ -51,7 +53,7 @@ const deprecate: ElectronInternal.DeprecationUtil = {
     const warn = warnOnce(`${fn.name} function`, `${newName} function`)
     return function (this: any) {
       warn()
-      return fn.apply(this, arguments)
+      return reflectApply(fn, this, arguments)
     }
   },
 
@@ -59,7 +61,7 @@ const deprecate: ElectronInternal.DeprecationUtil = {
     const warn = warnOnce(oldUsage, newUsage)
     return function (this: any) {
       warn()
-      return fn.apply(this, arguments)
+      return reflectApply(fn, this, arguments)
     }
   },
 
@@ -83,7 +85,7 @@ const deprecate: ElectronInternal.DeprecationUtil = {
       const method = obj[key]
       return function (this: any, ...args: any) {
         warn()
-        return method.apply(this, args)
+        return reflectApply(method, this, args)
       }
     }
 

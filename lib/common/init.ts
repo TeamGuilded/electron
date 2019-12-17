@@ -3,6 +3,7 @@ import * as util from 'util'
 import { electronBindingSetup } from '@electron/internal/common/electron-binding-setup'
 
 const timers = require('timers')
+const reflectApply = Reflect.apply
 
 process.electronBinding = electronBindingSetup(process._linkedBinding, process.type)
 
@@ -18,7 +19,7 @@ const wrapWithActivateUvLoop = function <T extends AnyFn> (func: T): T {
   return wrap(func, function (func) {
     return function (this: any, ...args: any[]) {
       process.activateUvLoop()
-      return func.apply(this, args)
+      return reflectApply(func, this, args)
     }
   }) as T
 }

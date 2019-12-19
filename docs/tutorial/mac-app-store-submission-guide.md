@@ -181,6 +181,15 @@ Also, due to the usage of app sandboxing, the resources which can be accessed by
 the app are strictly limited; you can read [App Sandboxing][app-sandboxing] for
 more information.
 
+### Battery usage
+
+As the private remote CoreAnimation APIs are disabled in MAS build, apps'
+battery usage would be much worse under certain case.
+
+For apps that spend a lot of time watching video (especially fullscreen video),
+the battery usage will likely increase 1.5x to 2x. For things like scrolling,
+it will increase about 1.15x or 1.25x.
+
 ### Additional Entitlements
 
 Depending on which Electron APIs your app uses, you may need to add additional

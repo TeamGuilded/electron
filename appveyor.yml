@@ -36,6 +36,8 @@ environment:
   ELECTRON_ENABLE_STACK_DUMPING: 1
   MOCHA_REPORTER: mocha-multi-reporters
   MOCHA_MULTI_REPORTERS: mocha-appveyor-reporter, tap
+  GOMA_AUTH_CONFIG:
+    secure: GZjjIWCD5L0fP5sb+PP+Nb/SMhSRK8yJg7GU6EHp3yW0tsiwg2KdRpLq7U363hOwMfkai2aQPBjv50MLFACFuVKEcBeCpEPKtLbLcjnqjU3WzkCcLZPYYDQgX9d0dB79jLd8PKCQ8UN55d7/tjjw7MQ6AQ7LXlxohL8qHKim0DcEhDQoUB4KZq9CDcesINS6app2e4lugZFL5c6Lk8puSN+j/80v5ZYUN6sh0J7SeQ8+5VYMfdQRyxCSn7S3N0gOW7V3/M0glpotS+tLINmZVFpO/On3EPZct68xDLt0+1lipdtJ6qgDDt8haOJN+/3WgzTDqzPVHcqGhnxgTj9cajBXtLlc3cvzyfikRW8qrgGCpVWr8F6L7I3nnkqCbg6V55VPMW11+n49ETkGckHtJw8dRNtyC0vfON2A2DgasfQHbCMM6sQ3sWLcT4ogvfiPg5Uar3if8V4FGBRWxGMH9kUiFEYWJ1Qq9sqgng5+UQaRpd7QkY6TDZ3L6MkYf30lCoJAinmDsijDwwT3RGAKyr4XWoLxe+cEInINHQHgcsAP9W3Ac+gM6jSYp1VhbU9WZtqugj0lT64jQuDjpn36qDlSUXl5SiZ4tgTPXfH80smiwZekjBeqr3DgedGknpggw/7HzWge/9jTHK4hvc+LHlcXrgkWcK6YjqPPuYC7j+BxIebA0E9mXqm8dRas6wyYkbO5d89BO3SHmA39dlI3hFLFwV8HupLLrpvhP/5gJY51FHLo9wqxukF04ekbEjPRCha7dv4RP7qNoqbExyNqeMtb2BTw7nYXV4r8eEUvTMPZSZLsMK5Mm/XVUpyjE31GZ+e0vhwt4baVI3rChypr9USKh8ZrLAt8gncR7SmfrHS4e02koUyE4XvamE82USPX9UTskauKxrOnABWv4spRGXbfaKpHzu7HTRJ/g6s8lY96Ump8A61gu/VYXZSUFKKP6EpedYuClicZWMcaUP41fTdpdAdwmCCCB4Yj6E10VbAMvkO/HhrHwNiMhHSkBm8HNvoft2yQrrS8AjTwrzX5xaPwehA/wzWasXyj4TDez5WI9cnqDpk8iR28WTKtOdWXPxfs5xZV3Psdv0SI8/GS4UqQz+TlOhGKtI6sW6ZLFaeqd8WoxrIUbI5um1n/7MzBW8kVec5X5p0HXrvY/fXcTBM2VX1730ufmdPB6ooF+QHYM1jx3O/wzpN2eJMgxXbuLNpBusIP/gLsur4Z+URoRU186284RxJjp5KMDXnT9Ee5YrllXzkOvtO6XjCkNihSAZteFqN6Rdsa0X+Y22xF00O8+X7wpwG/WbxDNiXASWovpvEVKEtPHVK19rhF8GgLFd70caYvWfPdd0FoWnQqHkHXH4hMZt0ZtjuW5uyvngOCxqCk6chQu0MEtNb8knyV41+8ruHx5RWSYEgT1+nf+5NQRDS3W2ZlJ+fHZAJR6pRs3xBiRC66ub+jk4xJwEr5Fctou1U32dT8I13YJCIp4GLJ7SWsTJ6HQfP3mJzOjO4kylXwgSlxwrT9H/JLOGQoBW6T+DEZ0Q11Ngtt0EOU6Jo5AIXSVmNzLmwvAWzWtEjKLGuI41nEj1VOh90dTFDfPKugOzQGxdZqhmjVBgiL5KwhQQIMJXKCUoJsDv4v8IjZtAJ7ET6nKf5hCchTeDHa7Spr/3R/RuF5vy+3lrarz3jGUJb+dVsbkj8iNhh61/0PQB5By0l4MciOnilez73uEg9z/yJ6NglcazK1gXwuKQ==
 notifications:
   - provider: Webhook
     url: https://electron-mission-control.herokuapp.com/rest/appveyor-hook
@@ -63,7 +65,7 @@ build_script:
   - mkdir src
   - ps: Move-Item $env:APPVEYOR_BUILD_FOLDER -Destination src\electron
   - ps: $env:CHROMIUM_BUILDTOOLS_PATH="$pwd\src\buildtools"
-  - ps: $env:SCCACHE_PATH="$pwd\src\electron\external_binaries\sccache.exe"
+  - ps: $env:GOMA_PATH="$pwd\src\electron\external_binaries\goma-win64"
   - ps: >-
       if ($env:GN_CONFIG -eq 'release') {
         $env:GCLIENT_EXTRA_ARGS="$env:GCLIENT_EXTRA_ARGS --custom-var=checkout_boto=True --custom-var=checkout_requests=True"
@@ -101,6 +103,11 @@ build_script:
       }
   - if "%RUN_GCLIENT_SYNC%"=="true" ( gclient sync --with_branch_heads --with_tags --ignore_locks)
   - ps: >-
+      if (Test-Path 'env:GOMA_AUTH_CONFIG') {
+        $env:GOMA_AUTH_CONFIG | Set-Content "$env:USERPROFILE\.goma_oauth2_config"
+      }
+  - src/electron/external_binaries/goma-win64/goma_ctl.bat ensure_start
+  - ps: >-
       if ($env:SAVE_GCLIENT_SRC -eq 'true') {
         # archive current source for future use 
         # only run on x64/woa to avoid contention saving
@@ -110,7 +117,7 @@ build_script:
       }
   - cd src
   - ps: $env:BUILD_CONFIG_PATH="//electron/build/args/%GN_CONFIG%.gn"
-  - gn gen out/Default "--args=import(\"%BUILD_CONFIG_PATH%\") %GN_EXTRA_ARGS% cc_wrapper=\"%SCCACHE_PATH%\""
+  - gn gen out/Default "--args=import(\"%BUILD_CONFIG_PATH%\") %GN_EXTRA_ARGS% use_goma=true goma_dir=\"%GOMA_PATH%\""
   - gn check out/Default //electron:electron_lib
   - gn check out/Default //electron:electron_app
   - gn check out/Default //electron:manifests
@@ -125,7 +132,7 @@ build_script:
   - ninja -C out/Default electron:hunspell_dictionaries_zip
   - ninja -C out/Default electron:electron_chromedriver_zip
   - ninja -C out/Default third_party/electron_node:headers
-  - cmd /C %SCCACHE_PATH% --show-stats
+  # - cmd /C %SCCACHE_PATH% --show-stats
   - python electron/build/profile_toolchain.py --output-json=out/Default/windows_toolchain_profile.json
   - appveyor PushArtifact out/Default/windows_toolchain_profile.json
   - appveyor PushArtifact out/Default/dist.zip

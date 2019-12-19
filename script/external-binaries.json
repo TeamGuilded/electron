@@ -43,6 +43,11 @@
       "url": "sccache-win32-x64.zip",
       "platform": "win32",
       "sha": "b6a20fd1c2026f3792e7286bc768a7ebc261847b76449b49f55455e1f841fecd"
+    },
+    {
+      "url": "goma-win64.zip",
+      "platform": "win32",
+      "sha": "8ece81a6b618311caf41cc49c89ebbd1249d88ccb8f327fe9b6efb8f26339232"
     }
   ]
 }

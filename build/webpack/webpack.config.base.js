@@ -6,8 +6,10 @@ const electronRoot = path.resolve(__dirname, '../..')
 
 const onlyPrintingGraph = !!process.env.PRINT_WEBPACK_GRAPH
 
+const buildFlagArg = process.argv.find(arg => arg.startsWith('--buildflags='));
+
 class AccessDependenciesPlugin {
-  apply(compiler) {
+  apply (compiler) {
     // Only hook into webpack when we are printing the dependency graph
     if (!onlyPrintingGraph) return
 
@@ -18,6 +20,63 @@ class AccessDependenciesPlugin {
       })
     })
   }
+}
+
+const defines = {
+  BUILDFLAG: ' '
+}
+
+if (buildFlagArg) {
+  const buildFlagPath = buildFlagArg.substr(13)
+
+  const flagFile = fs.readFileSync(buildFlagPath, 'utf8')
+  for (const line of flagFile.split(/(\r\n|\r|\n)/g)) {
+    const flagMatch = line.match(/#define BUILDFLAG_INTERNAL_(.+?)\(\) \(([01])\)/)
+    if (flagMatch) {
+      defines[flagMatch[1]] = JSON.stringify(Boolean(parseInt(flagMatch[2], 10)))
+    }
+  }
+}
+
+const ignoredModules = []
+
+if (defines['ENABLE_DESKTOP_CAPTURER'] === 'false') {
+  ignoredModules.push(
+    '@electron/internal/browser/desktop-capturer',
+    '@electron/internal/renderer/api/desktop-capturer'
+  )
+}
+
+if (defines['ENABLE_REMOTE_MODULE'] === 'false') {
+  ignoredModules.push(
+    '@electron/internal/browser/remote/server',
+    '@electron/internal/renderer/api/remote'
+  )
+}
+
+if (defines['ENABLE_VIEW_API'] === 'false') {
+  ignoredModules.push(
+    '@electron/internal/browser/api/views/box-layout',
+    '@electron/internal/browser/api/views/button',
+    '@electron/internal/browser/api/views/label-button',
+    '@electron/internal/browser/api/views/layout-manager',
+    '@electron/internal/browser/api/views/md-text-button',
+    '@electron/internal/browser/api/views/resize-area',
+    '@electron/internal/browser/api/views/text-field'
+  )
+}
+
+if (defines['ENABLE_ELECTRON_EXTENSIONS'] === 'true') {
+  ignoredModules.push(
+    '@electron/internal/browser/chrome-extension',
+    '@electron/internal/renderer/chrome-api',
+    '@electron/internal/renderer/content-scripts-injector'
+  )
+}
+
+const alias = {}
+for (const ignoredModule of ignoredModules) {
+  alias[ignoredModule] = path.resolve(electronRoot, 'lib/common/dummy.js')
 }
 
 module.exports = ({
@@ -41,6 +100,7 @@ module.exports = ({
     },
     resolve: {
       alias: {
+        ...alias,
         '@electron/internal': path.resolve(electronRoot, 'lib'),
         'electron': path.resolve(electronRoot, 'lib', loadElectronFromAlternateTarget || target, 'api', 'exports', 'electron.ts'),
         // Force timers to resolve to our dependency that doens't use window.postMessage
@@ -64,7 +124,7 @@ module.exports = ({
       __filename: false,
       // We provide our own "timers" import above, any usage of setImmediate inside
       // one of our renderer bundles should import it from the 'timers' package
-      setImmediate: false,
+      setImmediate: false
     },
     plugins: [
       new AccessDependenciesPlugin(),
@@ -78,6 +138,7 @@ module.exports = ({
       new webpack.ProvidePlugin({
         Promise: ['@electron/internal/common/webpack-globals-provider', 'Promise'],
       }),
+      new webpack.DefinePlugin(defines)
     ]
   })
 }

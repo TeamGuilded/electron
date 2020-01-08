@@ -129,7 +129,7 @@ auto_filenames = {
   ]
 
   sandbox_bundle_deps = [
-    "lib/browser/api/module-keys.js",
+    "lib/browser/api/module-names.ts",
     "lib/common/api/clipboard.js",
     "lib/common/api/deprecate.ts",
     "lib/common/api/module-list.ts",
@@ -286,7 +286,7 @@ auto_filenames = {
   ]
 
   renderer_bundle_deps = [
-    "lib/browser/api/module-keys.js",
+    "lib/browser/api/module-names.ts",
     "lib/common/api/clipboard.js",
     "lib/common/api/deprecate.ts",
     "lib/common/api/module-list.ts",
@@ -335,7 +335,7 @@ auto_filenames = {
   ]
 
   worker_bundle_deps = [
-    "lib/browser/api/module-keys.js",
+    "lib/browser/api/module-names.ts",
     "lib/common/api/clipboard.js",
     "lib/common/api/deprecate.ts",
     "lib/common/api/module-list.ts",

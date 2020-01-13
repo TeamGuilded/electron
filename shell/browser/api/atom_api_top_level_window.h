@@ -98,6 +98,7 @@ class TopLevelWindow : public gin_helper::TrackableObject<TopLevelWindow>,
   void ShowInactive();
   void Hide();
   bool IsVisible();
+  bool IsOccluded();
   bool IsEnabled();
   void SetEnabled(bool enable);
   void Maximize();

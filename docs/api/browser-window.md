@@ -890,6 +890,10 @@ Hides the window.
 
 Returns `Boolean` - Whether the window is visible to the user.
 
+#### `win.isOccluded()`
+
+Returns `Boolean` - Whether the window is occluded on the current screen.
+
 #### `win.isModal()`
 
 Returns `Boolean` - Whether current window is a modal window.

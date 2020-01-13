@@ -542,6 +542,10 @@ describe('BrowserWindow module', () => {
         w.show()
         expect(w.isVisible()).to.equal(true)
       })
+      it('should make the window non-occluded', () => {
+        w.show()
+        expect(w.isOccluded()).to.equal(false)
+      })
       it('emits when window is shown', (done) => {
         w.once('show', () => {
           expect(w.isVisible()).to.equal(true)

@@ -338,6 +338,10 @@ bool TopLevelWindow::IsVisible() {
   return window_->IsVisible();
 }
 
+bool TopLevelWindow::IsOccluded() {
+  return window_->IsOccluded();
+}
+
 bool TopLevelWindow::IsEnabled() {
   return window_->IsEnabled();
 }
@@ -1183,6 +1187,7 @@ void TopLevelWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("_setEscapeTouchBarItem",
                  &TopLevelWindow::SetEscapeTouchBarItem)
 #if defined(OS_MACOSX)
+      .SetMethod("isOccluded", &TopLevelWindow::IsOccluded)
       .SetMethod("selectPreviousTab", &TopLevelWindow::SelectPreviousTab)
       .SetMethod("selectNextTab", &TopLevelWindow::SelectNextTab)
       .SetMethod("mergeAllWindows", &TopLevelWindow::MergeAllWindows)

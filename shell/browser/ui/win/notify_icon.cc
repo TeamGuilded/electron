@@ -225,7 +225,7 @@ void NotifyIcon::PopUpContextMenu(const gfx::Point& pos,
       menu_model != nullptr ? menu_model : menu_model_,
       views::MenuRunner::CONTEXT_MENU | views::MenuRunner::HAS_MNEMONICS,
       base::BindRepeating(&NotifyIcon::OnContextMenuClosed,
-                          weak_factory_.GetWeakPtr())));
+                          weak_factory_.GetWeakPtr(), menu_model)));
   menu_runner_->RunMenuAt(widget_.get(), NULL, rect,
                           views::MenuAnchorPosition::kTopLeft,
                           ui::MENU_SOURCE_MOUSE);
@@ -254,7 +254,10 @@ void NotifyIcon::InitIconData(NOTIFYICONDATA* icon_data) {
   icon_data->uID = icon_id_;
 }
 
-void NotifyIcon::OnContextMenuClosed() {
+void NotifyIcon::OnContextMenuClosed(AtomMenuModel* temporary_model) {
+  if (temporary_model != nullptr)
+    temporary_model = nullptr;
+
   widget_->Close();
 }
 

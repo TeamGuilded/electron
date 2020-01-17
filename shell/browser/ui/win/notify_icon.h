@@ -68,7 +68,7 @@ class NotifyIcon : public TrayIcon {
 
  private:
   void InitIconData(NOTIFYICONDATA* icon_data);
-  void OnContextMenuClosed();
+  void OnContextMenuClosed(AtomMenuModel* temporary_model);
 
   // The tray that owns us.  Weak.
   NotifyIconHost* host_;

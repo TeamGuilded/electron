@@ -235,7 +235,7 @@ void SetZoomLevel(v8::Local<v8::Value> window, double level) {
   mojom::ElectronBrowserPtr browser_ptr;
   render_frame->GetRemoteInterfaces()->GetInterface(
       mojo::MakeRequest(&browser_ptr));
-  browser_ptr->SetTemporaryZoomLevel(level);
+  browser_ptr->SetZoomLevel(level);
 }
 
 double GetZoomLevel(v8::Local<v8::Value> window) {

@@ -66,7 +66,7 @@
 #include "shell/browser/ui/inspectable_web_contents_view.h"
 #include "shell/browser/web_contents_permission_helper.h"
 #include "shell/browser/web_contents_preferences.h"
-#include "shell/browser/web_contents_zoom_controller.h"
+#include "components/zoom/zoom_controller.h"
 #include "shell/browser/web_view_guest_delegate.h"
 #include "shell/common/api/electron_api_native_image.h"
 #include "shell/common/color_util.h"
@@ -116,6 +116,8 @@
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
 #include "shell/browser/extensions/electron_extension_web_contents_observer.h"
 #endif
+
+using zoom::ZoomController;
 
 namespace gin {
 
@@ -499,11 +501,7 @@ WebContents::WebContents(v8::Isolate* isolate,
 
 void WebContents::InitZoomController(content::WebContents* web_contents,
                                      const gin_helper::Dictionary& options) {
-  WebContentsZoomController::CreateForWebContents(web_contents);
-  zoom_controller_ = WebContentsZoomController::FromWebContents(web_contents);
-  double zoom_factor;
-  if (options.Get(options::kZoomFactor, &zoom_factor))
-    zoom_controller_->SetDefaultZoomFactor(zoom_factor);
+  ZoomController::CreateForWebContents(web_contents);
 }
 
 void WebContents::InitWithSessionAndOptions(
@@ -2388,11 +2386,11 @@ gfx::Size WebContents::GetSizeForNewRenderView(content::WebContents* wc) {
 }
 
 void WebContents::SetZoomLevel(double level) {
-  zoom_controller_->SetZoomLevel(level);
+  zoom::ZoomController::FromWebContents(web_contents())->SetZoomLevel(level);
 }
 
 double WebContents::GetZoomLevel() const {
-  return zoom_controller_->GetZoomLevel();
+  return zoom::ZoomController::FromWebContents(web_contents())->GetZoomLevel();
 }
 
 void WebContents::SetZoomFactor(double factor) {
@@ -2403,10 +2401,6 @@ void WebContents::SetZoomFactor(double factor) {
 double WebContents::GetZoomFactor() const {
   auto level = GetZoomLevel();
   return blink::PageZoomLevelToZoomFactor(level);
-}
-
-void WebContents::SetTemporaryZoomLevel(double level) {
-  zoom_controller_->SetTemporaryZoomLevel(level);
 }
 
 void WebContents::DoGetZoomLevel(DoGetZoomLevelCallback callback) {

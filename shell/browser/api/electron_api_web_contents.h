@@ -63,7 +63,6 @@ namespace electron {
 class ElectronBrowserContext;
 class ElectronJavaScriptDialogManager;
 class InspectableWebContents;
-class WebContentsZoomController;
 class WebViewGuestDelegate;
 class FrameSubscriber;
 
@@ -286,7 +285,7 @@ class WebContents : public gin_helper::TrackableObject<WebContents>,
   gfx::Size GetSizeForNewRenderView(content::WebContents*) override;
 
   // Methods for zoom handling.
-  void SetZoomLevel(double level);
+  void SetZoomLevel(double level) override;
   double GetZoomLevel() const;
   void SetZoomFactor(double factor);
   double GetZoomFactor() const;
@@ -328,8 +327,6 @@ class WebContents : public gin_helper::TrackableObject<WebContents>,
   content::WebContents* HostWebContents() const;
   v8::Local<v8::Value> DevToolsWebContents(v8::Isolate* isolate);
   v8::Local<v8::Value> Debugger(v8::Isolate* isolate);
-
-  WebContentsZoomController* GetZoomController() { return zoom_controller_; }
 
   void AddObserver(ExtendedWebContentsObserver* obs) {
     observers_.AddObserver(obs);
@@ -538,7 +535,6 @@ class WebContents : public gin_helper::TrackableObject<WebContents>,
 #endif
   void UpdateDraggableRegions(
       std::vector<mojom::DraggableRegionPtr> regions) override;
-  void SetTemporaryZoomLevel(double level) override;
   void DoGetZoomLevel(DoGetZoomLevelCallback callback) override;
 
   // Called when we receive a CursorChange message from chromium.
@@ -566,9 +562,6 @@ class WebContents : public gin_helper::TrackableObject<WebContents>,
 
   // The host webcontents that may contain this webcontents.
   WebContents* embedder_ = nullptr;
-
-  // The zoom controller for this webContents.
-  WebContentsZoomController* zoom_controller_ = nullptr;
 
   // The type of current WebContents.
   Type type_ = Type::BROWSER_WINDOW;

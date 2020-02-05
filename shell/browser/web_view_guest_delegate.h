@@ -6,7 +6,7 @@
 #define SHELL_BROWSER_WEB_VIEW_GUEST_DELEGATE_H_
 
 #include "content/public/browser/browser_plugin_guest_delegate.h"
-#include "shell/browser/web_contents_zoom_controller.h"
+#include "components/zoom/zoom_observer.h"
 
 namespace electron {
 
@@ -15,7 +15,7 @@ class WebContents;
 }
 
 class WebViewGuestDelegate : public content::BrowserPluginGuestDelegate,
-                             public WebContentsZoomController::Observer {
+                             public zoom::ZoomObserver {
  public:
   WebViewGuestDelegate(content::WebContents* embedder,
                        api::WebContents* api_web_contents);
@@ -34,11 +34,8 @@ class WebViewGuestDelegate : public content::BrowserPluginGuestDelegate,
   content::WebContents* CreateNewGuestWindow(
       const content::WebContents::CreateParams& create_params) final;
 
-  // WebContentsZoomController::Observer:
-  void OnZoomLevelChanged(content::WebContents* web_contents,
-                          double level,
-                          bool is_temporary) override;
-  void OnZoomControllerWebContentsDestroyed() override;
+  // zoom::ZoomObserver:
+  void OnZoomChanged(const zoom::ZoomController::ZoomChangedEventData& data) override;
 
  private:
   void ResetZoomController();
@@ -48,7 +45,7 @@ class WebViewGuestDelegate : public content::BrowserPluginGuestDelegate,
 
   // The zoom controller of the embedder that is used
   // to subscribe for zoom changes.
-  WebContentsZoomController* embedder_zoom_controller_ = nullptr;
+  zoom::ZoomController* embedder_zoom_controller_ = nullptr;
 
   api::WebContents* api_web_contents_ = nullptr;
 

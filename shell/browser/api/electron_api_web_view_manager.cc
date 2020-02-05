@@ -4,7 +4,7 @@
 
 #include "content/public/browser/browser_context.h"
 #include "shell/browser/web_contents_preferences.h"
-#include "shell/browser/web_contents_zoom_controller.h"
+#include "components/zoom/zoom_controller.h"
 #include "shell/browser/web_view_manager.h"
 #include "shell/common/gin_converters/content_converter.h"
 #include "shell/common/gin_converters/value_converter.h"
@@ -13,6 +13,7 @@
 #include "shell/common/options_switches.h"
 
 using electron::WebContentsPreferences;
+using zoom::ZoomController;
 
 namespace {
 
@@ -25,12 +26,6 @@ void AddGuest(int guest_instance_id,
   if (manager)
     manager->AddGuest(guest_instance_id, element_instance_id, embedder,
                       guest_web_contents);
-
-  double zoom_factor;
-  if (options.GetDouble(electron::options::kZoomFactor, &zoom_factor)) {
-    electron::WebContentsZoomController::FromWebContents(guest_web_contents)
-        ->SetDefaultZoomFactor(zoom_factor);
-  }
 
   WebContentsPreferences::From(guest_web_contents)->Merge(options);
 }

@@ -49,10 +49,8 @@ void WebViewGuestDelegate::AttachToIframe(
   ResetZoomController();
 
   embedder_zoom_controller_ =
-      WebContentsZoomController::FromWebContents(embedder_web_contents_);
+      zoom::ZoomController::FromWebContents(embedder_web_contents_);
   embedder_zoom_controller_->AddObserver(this);
-  auto* zoom_controller = api_web_contents_->GetZoomController();
-  zoom_controller->SetEmbedderZoomController(embedder_zoom_controller_);
 
   api_web_contents_->Emit("did-attach");
 }
@@ -65,24 +63,17 @@ content::WebContents* WebViewGuestDelegate::GetOwnerWebContents() {
   return embedder_web_contents_;
 }
 
-void WebViewGuestDelegate::OnZoomLevelChanged(
-    content::WebContents* web_contents,
-    double level,
-    bool is_temporary) {
-  if (web_contents == GetOwnerWebContents()) {
+void WebViewGuestDelegate::OnZoomChanged(const zoom::ZoomController::ZoomChangedEventData& data) {
+  if (data.web_contents == GetOwnerWebContents()) {
     if (is_temporary) {
-      api_web_contents_->GetZoomController()->SetTemporaryZoomLevel(level);
+      api_web_contents_->GetZoomController()->SetTemporaryZoomLevel(data.level);
     } else {
-      api_web_contents_->GetZoomController()->SetZoomLevel(level);
+      api_web_contents_->GetZoomController()->SetZoomLevel(data.level);
     }
     // Change the default zoom factor to match the embedders' new zoom level.
     double zoom_factor = blink::PageZoomFactorToZoomLevel(level);
     api_web_contents_->GetZoomController()->SetDefaultZoomFactor(zoom_factor);
   }
-}
-
-void WebViewGuestDelegate::OnZoomControllerWebContentsDestroyed() {
-  ResetZoomController();
 }
 
 void WebViewGuestDelegate::ResetZoomController() {

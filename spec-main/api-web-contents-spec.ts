@@ -1518,14 +1518,14 @@ describe('webContents module', () => {
   })
 
   describe('devtools window', () => {
-// TODO(MarshallOfSound): Re-enable this test
-//     let hasRobotJS = false
-//     try {
-//       // We have other tests that check if native modules work, if we fail to require
-//       // robotjs let's skip this test to avoid false negatives
-//       require('robotjs')
-//       hasRobotJS = true
-//     } catch (err) { /* no-op */ }
+    // TODO(MarshallOfSound): Re-enable this test
+    //     let hasRobotJS = false
+    //     try {
+    //       // We have other tests that check if native modules work, if we fail to require
+    //       // robotjs let's skip this test to avoid false negatives
+    //       require('robotjs')
+    //       hasRobotJS = true
+    //     } catch (err) { /* no-op */ }
 
     afterEach(closeAllWindows)
 

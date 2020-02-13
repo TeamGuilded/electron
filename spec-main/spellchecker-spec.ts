@@ -47,7 +47,7 @@ describe('spellchecker', () => {
     await w.webContents.executeJavaScript('document.body.querySelector("textarea").focus()')
     const contextMenuPromise = emittedOnce(w.webContents, 'context-menu')
     // Wait for spellchecker to load
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise(resolve => setTimeout(resolve, 1200))
     triggerContextMenu()
     const contextMenuParams: Electron.ContextMenuParams = (await contextMenuPromise)[1]
     expect(contextMenuParams.misspelledWord).to.eq('')
@@ -59,7 +59,7 @@ describe('spellchecker', () => {
     await w.webContents.executeJavaScript('document.body.querySelector("textarea").focus()')
     const contextMenuPromise = emittedOnce(w.webContents, 'context-menu')
     // Wait for spellchecker to load
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise(resolve => setTimeout(resolve, 1200))
     triggerContextMenu()
     const contextMenuParams: Electron.ContextMenuParams = (await contextMenuPromise)[1]
     expect(contextMenuParams.misspelledWord).to.eq('Beautifulllll')

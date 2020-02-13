@@ -1518,13 +1518,14 @@ describe('webContents module', () => {
   })
 
   describe('devtools window', () => {
-    let hasRobotJS = false
-    try {
-      // We have other tests that check if native modules work, if we fail to require
-      // robotjs let's skip this test to avoid false negatives
-      require('robotjs')
-      hasRobotJS = true
-    } catch (err) { /* no-op */ }
+// TODO(MarshallOfSound): Re-enable this test
+//     let hasRobotJS = false
+//     try {
+//       // We have other tests that check if native modules work, if we fail to require
+//       // robotjs let's skip this test to avoid false negatives
+//       require('robotjs')
+//       hasRobotJS = true
+//     } catch (err) { /* no-op */ }
 
     afterEach(closeAllWindows)
 
@@ -1532,7 +1533,7 @@ describe('webContents module', () => {
     // control your computer. Open System Preferences > Security & Privacy >
     // Privacy > Accessibility and grant your terminal the permission to control
     // your computer.
-    ifit(hasRobotJS)('can receive and handle menu events', async () => {
+    it.skip('can receive and handle menu events', async () => {
       const w = new BrowserWindow({ show: true, webPreferences: { nodeIntegration: true } })
       w.loadFile(path.join(fixturesPath, 'pages', 'key-events.html'))
 

@@ -6,7 +6,7 @@ import { closeWindow } from './window-helpers'
 import { emittedOnce } from './events-helpers'
 import { ifit } from './spec-helpers'
 
-describe.only('spellchecker', () => {
+describe('spellchecker', () => {
   let w: BrowserWindow
   let hasRobotJS = false
   try {
@@ -27,7 +27,7 @@ describe.only('spellchecker', () => {
     await closeWindow(w)
   })
 
-  function triggerContextMenu() {
+  function triggerContextMenu () {
     const offset = { x: 43, y: 42 }
     if (process.platform !== 'win32') {
       w.webContents.sendInputEvent({

@@ -95,8 +95,14 @@ void SystemPreferences::BuildPrototype(
                  &SystemPreferences::UnsubscribeWorkspaceNotification)
       .SetMethod("registerDefaults", &SystemPreferences::RegisterDefaults)
       .SetMethod("getUserDefault", &SystemPreferences::GetUserDefault)
+      .SetMethod("getUserDefaultForSuite",
+                 &SystemPreferences::GetUserDefaultForSuite)
       .SetMethod("setUserDefault", &SystemPreferences::SetUserDefault)
+      .SetMethod("setUserDefaultForSuite",
+                 &SystemPreferences::SetUserDefaultForSuite)
       .SetMethod("removeUserDefault", &SystemPreferences::RemoveUserDefault)
+      .SetMethod("removeUserDefaultForSuite",
+                 &SystemPreferences::RemoveUserDefaultForSuite)
       .SetMethod("isSwipeTrackingFromScrollEventsEnabled",
                  &SystemPreferences::IsSwipeTrackingFromScrollEventsEnabled)
       .SetMethod("_getEffectiveAppearance",

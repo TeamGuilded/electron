@@ -80,6 +80,25 @@ describe('systemPreferences module', () => {
     })
   })
 
+  ifdescribe(process.platform === 'darwin')('systemPreferences.getUserDefaultForSuite(suite, key, type)', () => {
+    it('returns values for known user defaults', () => {
+      const value = systemPreferences.getUserDefaultForSuite('com.apple.notificationcenterui', 'doNotDisturb', 'boolean')
+      expect(value).to.be.a('boolean')
+    })
+
+    it('returns values for unknown user defaults', () => {
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'boolean')).to.equal(false)
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'integer')).to.equal(0)
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'float')).to.equal(0)
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'double')).to.equal(0)
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'string')).to.equal('')
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'url')).to.equal('')
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'badtype' as any)).to.be.undefined('user default')
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'array')).to.deep.equal([])
+      expect(systemPreferences.getUserDefaultForSuite('SuiteDoesNotExist', 'UserDefaultDoesNotExist', 'dictionary')).to.deep.equal({})
+    })
+  })
+
   ifdescribe(process.platform === 'darwin')('systemPreferences.setUserDefault(key, type, value)', () => {
     const KEY = 'SystemPreferencesTest'
     const TEST_CASES = [

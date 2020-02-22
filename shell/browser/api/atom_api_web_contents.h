@@ -54,6 +54,12 @@ namespace network {
 class ResourceRequestBody;
 }
 
+namespace content {
+namespace mojom {
+class CreateNewWindowParams;
+}
+}  // namespace content
+
 namespace electron {
 
 class AtomBrowserContext;
@@ -385,6 +391,11 @@ class WebContents : public mate::TrackableObject<WebContents>,
                       const gfx::Rect& initial_rect,
                       bool user_gesture,
                       bool* was_blocked) override;
+
+  void OnPrepareWebContentsCreation(
+      content::WebContents::CreateParams& contentsCreateParams,
+      const content::mojom::CreateNewWindowParams& windowCreateParams) override;
+
   content::WebContents* OpenURLFromTab(
       content::WebContents* source,
       const content::OpenURLParams& params) override;

@@ -36,6 +36,14 @@ void WebContents::DetachFromOuterFrame() {
 }
 
 #if BUILDFLAG(ENABLE_OSR)
+bool WebContents::HasOffscreenContentsView(content::WebContents* web_contents){
+  const auto* impl =
+        static_cast<const content::WebContentsImpl*>(web_contents);
+  const auto* offscreenContentView =
+        static_cast<OffScreenWebContentsView*>(impl->GetView());
+  return offscreenContentView ? true : false;
+}
+
 OffScreenWebContentsView* WebContents::GetOffScreenWebContentsView() const {
   if (IsOffScreen()) {
     const auto* impl =

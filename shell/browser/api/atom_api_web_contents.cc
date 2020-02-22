@@ -341,8 +341,21 @@ WebContents::WebContents(v8::Isolate* isolate,
       << "Can't take ownership of a remote WebContents";
   auto session = Session::CreateFrom(isolate, GetBrowserContext());
   session_.Reset(isolate, session.ToV8());
-  InitWithSessionAndOptions(isolate, std::move(web_contents), session,
-                            mate::Dictionary::CreateEmpty(isolate));
+
+  mate::Dictionary options = mate::Dictionary::CreateEmpty(isolate);
+
+ if (type == Type::OFF_SCREEN){
+  mate::Dictionary webPreferences = mate::Dictionary::CreateEmpty(isolate);
+  webPreferences.Set("offscreen", true);
+  options.Set("webPreferences", webPreferences);
+
+    OffScreenWebContentsView* offscreenView = GetOffScreenWebContentsView();
+       offscreenView->SetWebContents(web_contents.get());
+       offscreenView->SetPaintCallback(base::BindRepeating(&WebContents::OnPaint, base::Unretained(this)));
+   }
+
+  InitWithSessionAndOptions(isolate, std::move(web_contents), session,options);
+
 }
 
 WebContents::WebContents(v8::Isolate* isolate, const mate::Dictionary& options)
@@ -583,6 +596,15 @@ void WebContents::OnCreateWindow(
     Emit("new-window", target_url, frame_name, disposition, features);
 }
 
+void WebContents::OnPrepareWebContentsCreation(
+    content::WebContents::CreateParams& contentsCreateParams,
+    const content::mojom::CreateNewWindowParams& windowCreateParams) {
+
+    auto* view = new OffScreenWebContentsView(false);
+    contentsCreateParams.view = view;
+    contentsCreateParams.delegate_view = view;
+}
+
 void WebContents::WebContentsCreated(content::WebContents* source_contents,
                                      int opener_render_process_id,
                                      int opener_render_frame_id,
@@ -605,10 +627,19 @@ void WebContents::AddNewContents(
   auto* tracker = ChildWebContentsTracker::FromWebContents(new_contents.get());
   DCHECK(tracker);
 
-  v8::Locker locker(isolate());
-  v8::HandleScope handle_scope(isolate());
+  // v8::Locker locker(isolate());
+  // v8::HandleScope handle_scope(isolate());
+  // const auto* impl =
+  //       static_cast<const content::WebContentsImpl*>(new_contents.get());
+  //   const OffScreenWebContentsView* offscreenContent = static_cast<OffScreenWebContentsView*>(impl->GetView());
+
+    auto screenType = Type::BROWSER_WINDOW;
+    if (WebContents::HasOffscreenContentsView(new_contents.get())){
+      screenType = Type::OFF_SCREEN;
+    }
+
   auto api_web_contents =
-      CreateAndTake(isolate(), std::move(new_contents), Type::BROWSER_WINDOW);
+      CreateAndTake(isolate(), std::move(new_contents), screenType);
   if (Emit("-add-new-contents", api_web_contents, disposition, user_gesture,
            initial_rect.x(), initial_rect.y(), initial_rect.width(),
            initial_rect.height(), tracker->url, tracker->frame_name)) {

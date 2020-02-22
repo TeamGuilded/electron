@@ -14,7 +14,15 @@ namespace electron {
 OffScreenWebContentsView::OffScreenWebContentsView(
     bool transparent,
     const OnPaintCallback& callback)
-    : native_window_(nullptr), transparent_(transparent), callback_(callback) {
+    : native_window_(nullptr), transparent_(transparent), offscreenPaintCallback_(callback), callback_(base::BindRepeating(&OffScreenWebContentsView::OnPaint, base::Unretained(this))) {
+#if defined(OS_MACOSX)
+  PlatformCreate();
+#endif
+}
+
+OffScreenWebContentsView::OffScreenWebContentsView(
+    bool transparent)
+    : native_window_(nullptr), transparent_(transparent), callback_(base::BindRepeating(&OffScreenWebContentsView::OnPaint, base::Unretained(this))) {
 #if defined(OS_MACOSX)
   PlatformCreate();
 #endif
@@ -27,6 +35,16 @@ OffScreenWebContentsView::~OffScreenWebContentsView() {
 #if defined(OS_MACOSX)
   PlatformDestroy();
 #endif
+}
+
+void OffScreenWebContentsView::SetPaintCallback(const OnPaintCallback& callback){
+  this->offscreenPaintCallback_ = callback;
+}
+
+void OffScreenWebContentsView::OnPaint(const gfx::Rect& dirty_rect, const SkBitmap& bitmap) {
+  if (this->offscreenPaintCallback_){
+    this->offscreenPaintCallback_.Run(dirty_rect, bitmap);
+  }
 }
 
 void OffScreenWebContentsView::SetWebContents(

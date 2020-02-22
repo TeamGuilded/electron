@@ -81,7 +81,7 @@ TopLevelWindow::TopLevelWindow(v8::Isolate* isolate,
     parent_window_.Reset(isolate, parent.ToV8());
 
 #if BUILDFLAG(ENABLE_OSR)
-  // Offscreen windows are always created frameless.
+  // Offscreen windows are always created farameless.
   mate::Dictionary web_preferences;
   bool offscreen;
   if (options.Get(options::kWebPreferences, &web_preferences) &&

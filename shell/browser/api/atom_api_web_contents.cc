@@ -343,9 +343,9 @@ WebContents::WebContents(v8::Isolate* isolate,
   session_.Reset(isolate, session.ToV8());
 
   mate::Dictionary options = mate::Dictionary::CreateEmpty(isolate);
+  options.Set("transparent", true);
 
   if (type == Type::OFF_SCREEN) {
-    options.Set("transparent", true);
     options.Set("frame", false);
 
     mate::Dictionary webPreferences = mate::Dictionary::CreateEmpty(isolate);
@@ -357,6 +357,12 @@ WebContents::WebContents(v8::Isolate* isolate,
     offscreenView->SetWebContents(web_contents.get());
     offscreenView->SetPaintCallback(
         base::BindRepeating(&WebContents::OnPaint, base::Unretained(this)));
+  }
+
+  // We may not call LoadURL on pre-created webcontents, so set background to always be transparent
+  auto* const view = web_contents.get()->GetRenderWidgetHostView();
+  if (view) {
+    view->SetBackgroundColor(SK_ColorTRANSPARENT);
   }
 
   InitWithSessionAndOptions(isolate, std::move(web_contents), session, options);
@@ -610,7 +616,7 @@ void WebContents::OnPrepareWebContentsCreation(
   bool isOffscreen = offscreenFlag != std::string::npos;
 
   if (isOffscreen) {
-    auto* view = new OffScreenWebContentsView(false);
+    auto* view = new OffScreenWebContentsView(true);
     contentsCreateParams.view = view;
     contentsCreateParams.delegate_view = view;
   }

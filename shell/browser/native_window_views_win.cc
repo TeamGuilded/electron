@@ -334,8 +334,8 @@ void NativeWindowViews::SetForwardMouseMessages(bool forward) {
   // It's possible that the legacy_window_ is not set when spawning child
   // windows (ex: window.open JS api). The WM_PARENTNOTIFY gets sent to the
   // initial opener/parent when the legacy window is created, then the legacy
-  // win gets re-attached to the newly spawened window manual grab the legacy
-  // window if it's not yet being tracked
+  // win gets re-attached to the newly created host native window. Here,
+  // manual grab the legacy window if it's not yet being tracked
   if (!legacy_window_) {
     HWND parent_window = this->GetNativeWindowHandle();
     LPARAM native_view = reinterpret_cast<LPARAM>(this);

@@ -120,3 +120,4 @@ backport_1090543.patch
 backport_1081722.patch
 backport_1073409.patch
 backport_1074340.patch
+add_prepare_web_contents_creation_delegate_for_nativewindow_open.patch

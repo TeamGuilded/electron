@@ -406,8 +406,31 @@ WebContents::WebContents(v8::Isolate* isolate,
       << "Can't take ownership of a remote WebContents";
   auto session = Session::CreateFrom(isolate, GetBrowserContext());
   session_.Reset(isolate, session.ToV8());
-  InitWithSessionAndOptions(isolate, std::move(web_contents), session,
-                            mate::Dictionary::CreateEmpty(isolate));
+
+  mate::Dictionary options = mate::Dictionary::CreateEmpty(isolate);
+  options.Set("transparent", true);
+
+  if (type == Type::OFF_SCREEN) {
+    options.Set("frame", false);
+
+    mate::Dictionary webPreferences = mate::Dictionary::CreateEmpty(isolate);
+    webPreferences.Set("offscreen", true);
+    webPreferences.Set("transparent", true);
+    options.Set("webPreferences", webPreferences);
+
+    OffScreenWebContentsView* offscreenView = GetOffScreenWebContentsView();
+    offscreenView->SetWebContents(web_contents.get());
+    offscreenView->SetPaintCallback(
+        base::BindRepeating(&WebContents::OnPaint, base::Unretained(this)));
+  }
+
+  // We may not call LoadURL on pre-created webcontents, so set background to always be transparent
+  auto* const view = web_contents.get()->GetRenderWidgetHostView();
+  if (view) {
+    view->SetBackgroundColor(SK_ColorTRANSPARENT);
+  }
+
+  InitWithSessionAndOptions(isolate, std::move(web_contents), session, options);
 }
 
 WebContents::WebContents(v8::Isolate* isolate, const mate::Dictionary& options)
@@ -654,6 +677,22 @@ void WebContents::OnCreateWindow(
     Emit("new-window", target_url, frame_name, disposition, features);
 }
 
+void WebContents::OnPrepareWebContentsCreation(
+    content::WebContents::CreateParams& contentsCreateParams,
+    const content::mojom::CreateNewWindowParams& windowCreateParams) {
+  // HACK: Until electron PR lands to properly pass the right values
+  // https://github.com/electron/electron/pull/19703
+  std::string::size_type offscreenFlag =
+      windowCreateParams.frame_name.find("\"offscreen\":true");
+  bool isOffscreen = offscreenFlag != std::string::npos;
+
+  if (isOffscreen) {
+    auto* view = new OffScreenWebContentsView(true);
+    contentsCreateParams.view = view;
+    contentsCreateParams.delegate_view = view;
+  }
+}
+
 void WebContents::WebContentsCreated(content::WebContents* source_contents,
                                      int opener_render_process_id,
                                      int opener_render_frame_id,
@@ -700,10 +739,19 @@ void WebContents::AddNewContents(
   auto* tracker = ChildWebContentsTracker::FromWebContents(new_contents.get());
   DCHECK(tracker);
 
-  v8::Locker locker(isolate());
-  v8::HandleScope handle_scope(isolate());
+  // HACK: Until electron PR lands to properly pass the right values
+  // https://github.com/electron/electron/pull/19703
+  std::string::size_type offscreenFlag =
+      tracker->frame_name.find("\"offscreen\":true");
+  bool isOffscreen = offscreenFlag != std::string::npos;
+
+  auto screenType = Type::BROWSER_WINDOW;
+  if (isOffscreen) {
+    screenType = Type::OFF_SCREEN;
+  }
+
   auto api_web_contents =
-      CreateAndTake(isolate(), std::move(new_contents), Type::BROWSER_WINDOW);
+      CreateAndTake(isolate(), std::move(new_contents), screenType);
   if (Emit("-add-new-contents", api_web_contents, disposition, user_gesture,
            initial_rect.x(), initial_rect.y(), initial_rect.width(),
            initial_rect.height(), tracker->url, tracker->frame_name)) {

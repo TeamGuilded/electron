@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chevon Christie <chevonc@live.com>
+Date: Sat, 22 Feb 2020 00:34:48 -0800
+Subject: add prepare web contents creation delegate for nativewindow open
+
+
+diff --git a/content/browser/web_contents/web_contents_impl.cc b/content/browser/web_contents/web_contents_impl.cc
+index 3863d5e9dfe970f0b893a1b060c85a5572cf26cd..e75290764e837f6a93bf3d338132d3e34f4c1c5c 100644
+--- a/content/browser/web_contents/web_contents_impl.cc
++++ b/content/browser/web_contents/web_contents_impl.cc
+@@ -2863,6 +2863,11 @@ void WebContentsImpl::CreateNewWindow(
+   if (!is_guest) {
+     create_params.context = view_->GetNativeView();
+     create_params.initial_size = GetContainerBounds().size();
++
++     if (delegate_){
++      delegate_->OnPrepareWebContentsCreation(create_params, params);
++    }
++
+     new_contents = WebContents::Create(create_params);
+   }  else {
+     new_contents = base::WrapUnique(
+diff --git a/content/public/browser/web_contents_delegate.h b/content/public/browser/web_contents_delegate.h
+index 70afb53576310f960f2fc257705731e43c412999..9d91210bef89bf965bb3645c7c00ae9f1bb946c5 100644
+--- a/content/public/browser/web_contents_delegate.h
++++ b/content/public/browser/web_contents_delegate.h
+@@ -69,6 +69,12 @@ struct Referrer;
+ struct SecurityStyleExplanations;
+ }  // namespace content
+ 
++namespace content {
++  namespace mojom {
++    class CreateNewWindowParams;
++  }
++}
++
+ namespace gfx {
+ class Rect;
+ class Size;
+@@ -333,6 +339,11 @@ class CONTENT_EXPORT WebContentsDelegate {
+       const std::string& partition_id,
+       SessionStorageNamespace* session_storage_namespace);
+ 
++  // Allows the delegate to control how created web contents params are constructed
++ virtual void OnPrepareWebContentsCreation(
++    content::WebContents::CreateParams& contentsCreateParams,
++    const content::mojom::CreateNewWindowParams& windowCreateParams) {}
++
+   // Notifies the delegate about the creation of a new WebContents. This
+   // typically happens when popups are created.
+   virtual void WebContentsCreated(WebContents* source_contents,

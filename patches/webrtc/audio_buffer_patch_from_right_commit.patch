@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Chevonc <Chevonc@live.com>
-Date: Tue, 15 Sep 2020 22:01:13 -0700
-Subject: patch audio module fix buffer fix
+Date: Tue, 15 Sep 2020 22:26:56 -0700
+Subject: audio buffer patch from right commit
 
 
 diff --git a/modules/audio_coding/acm2/audio_coding_module.cc b/modules/audio_coding/acm2/audio_coding_module.cc

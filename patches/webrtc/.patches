@@ -1,2 +1,3 @@
 backport_1076703.patch
 backport_978779.patch
+patch_audio_module_fix_buffer_fix.patch

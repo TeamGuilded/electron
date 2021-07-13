@@ -130,3 +130,4 @@ cherry-pick-bee371eeaf66.patch
 cherry-pick-f6cb89728f04.patch
 backport_1111737.patch
 add_prepare_web_contents_creation_delegate_for_nativewindow_open.patch
+extend_num_supported_gamepads.patch

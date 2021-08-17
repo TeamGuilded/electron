@@ -131,3 +131,4 @@ cherry-pick-f6cb89728f04.patch
 backport_1111737.patch
 add_prepare_web_contents_creation_delegate_for_nativewindow_open.patch
 extend_num_supported_gamepads.patch
+enable_h264_qp_threshold_optional_constraints.patch

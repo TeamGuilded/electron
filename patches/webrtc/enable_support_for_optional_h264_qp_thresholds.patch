@@ -1,0 +1,211 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Mon, 16 Aug 2021 21:52:57 -0400
+Subject: enable support for optional h264 qp thresholds
+
+partners with Chromium patch for parsing and passing a new
+transport level constraing (ggH264qpHigh & ggH264qpLow) for
+modifying H264 QP values
+
+diff --git a/api/peer_connection_interface.h b/api/peer_connection_interface.h
+index 2ae290c8d6b730c67f59513e3c2a41f325502186..84a2aa98690aba1cfa8191a73b13a4bb923ebdeb 100644
+--- a/api/peer_connection_interface.h
++++ b/api/peer_connection_interface.h
+@@ -412,6 +412,11 @@ class RTC_EXPORT PeerConnectionInterface : public rtc::RefCountInterface {
+     // when switching from a static scene to one with motion.
+     absl::optional<int> screencast_min_bitrate;
+ 
++    // Transport level settings to override the default H264 QP thresholds
++    absl::optional<int> h264_qp_high;
++    absl::optional<int> h264_qp_low;
++
++
+     // Use new combined audio/video bandwidth estimation?
+     absl::optional<bool> combined_audio_video_bwe;
+ 
+diff --git a/api/video_codecs/video_codec.h b/api/video_codecs/video_codec.h
+index a248d19382f1b9723e3e54fd875da84cae5e81d2..0f86ad2ef5a5b6e8ac31e36012b05d8465c2e93b 100644
+--- a/api/video_codecs/video_codec.h
++++ b/api/video_codecs/video_codec.h
+@@ -81,6 +81,8 @@ struct VideoCodecH264 {
+   bool frameDroppingOn;
+   int keyFrameInterval;
+   uint8_t numberOfTemporalLayers;
++  int qpHigh;
++  int qpLow;
+ };
+ 
+ // Translates from name of codec to codec type and vice versa.
+diff --git a/api/video_codecs/video_encoder.cc b/api/video_codecs/video_encoder.cc
+index 417772f1a4cc28f1e0ff79b7ee5a6793b6c8c165..d133d223ed8bee079cdcc943cb99674d2e6dce2f 100644
+--- a/api/video_codecs/video_encoder.cc
++++ b/api/video_codecs/video_encoder.cc
+@@ -56,6 +56,10 @@ VideoCodecH264 VideoEncoder::GetDefaultH264Settings() {
+   h264_settings.keyFrameInterval = 3000;
+   h264_settings.numberOfTemporalLayers = 1;
+ 
++  // these values are taken from h264_encoder_impl.cc
++  h264_settings.qpHigh = 37;
++  h264_settings.qpLow = 24;
++
+   return h264_settings;
+ }
+ 
+diff --git a/media/base/media_channel.h b/media/base/media_channel.h
+index 90c33bd7a6301a0c94f68e113228a786d16dd4d1..32de15d219da1884d6e547a173b8416149a9a864 100644
+--- a/media/base/media_channel.h
++++ b/media/base/media_channel.h
+@@ -110,12 +110,14 @@ struct VideoOptions {
+     SetFrom(&video_noise_reduction, change.video_noise_reduction);
+     SetFrom(&screencast_min_bitrate_kbps, change.screencast_min_bitrate_kbps);
+     SetFrom(&is_screencast, change.is_screencast);
++    SetFrom(&h264_qp_high, change.h264_qp_high);
++    SetFrom(&h264_qp_low, change.h264_qp_low);
+   }
+ 
+   bool operator==(const VideoOptions& o) const {
+     return video_noise_reduction == o.video_noise_reduction &&
+            screencast_min_bitrate_kbps == o.screencast_min_bitrate_kbps &&
+-           is_screencast == o.is_screencast;
++           is_screencast == o.is_screencast && h264_qp_high == o.h264_qp_high && h264_qp_low == o.h264_qp_low;
+   }
+   bool operator!=(const VideoOptions& o) const { return !(*this == o); }
+ 
+@@ -126,6 +128,8 @@ struct VideoOptions {
+     ost << ToStringIfSet("screencast min bitrate kbps",
+                          screencast_min_bitrate_kbps);
+     ost << ToStringIfSet("is_screencast ", is_screencast);
++    ost << ToStringIfSet("h264_qp_high ", h264_qp_high);
++    ost << ToStringIfSet("h264_qp_low ", h264_qp_low);
+     ost << "}";
+     return ost.Release();
+   }
+@@ -144,6 +148,9 @@ struct VideoOptions {
+   // youtube video have different needs.
+   absl::optional<bool> is_screencast;
+ 
++  absl::optional<int> h264_qp_high;
++  absl::optional<int> h264_qp_low;
++
+  private:
+   template <typename T>
+   static void SetFrom(absl::optional<T>* s, const absl::optional<T>& o) {
+diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
+index a5afcb3fe6336c05cfe6ce5a9f79659c7a8b0b6b..35b77a99688e67f5d8871eaee61ef8a0b370234e 100644
+--- a/media/engine/webrtc_video_engine.cc
++++ b/media/engine/webrtc_video_engine.cc
+@@ -342,6 +342,15 @@ WebRtcVideoChannel::WebRtcVideoSendStream::ConfigureVideoEncoderSettings(
+     webrtc::VideoCodecH264 h264_settings =
+         webrtc::VideoEncoder::GetDefaultH264Settings();
+     h264_settings.frameDroppingOn = frame_dropping;
++
++    if (parameters_.options.h264_qp_high) {
++      h264_settings.qpHigh = parameters_.options.h264_qp_high.value();
++    }
++
++    if (parameters_.options.h264_qp_low) {
++      h264_settings.qpLow = parameters_.options.h264_qp_low.value();
++    }
++
+     return new rtc::RefCountedObject<
+         webrtc::VideoEncoderConfig::H264EncoderSpecificSettings>(h264_settings);
+   }
+diff --git a/modules/video_coding/utility/quality_scaler.cc b/modules/video_coding/utility/quality_scaler.cc
+index a866aeb7644ff991b70f6d97689d5be7c648dd7c..d34489024a5ae63609295d1d3e85d0fea963f4e8 100644
+--- a/modules/video_coding/utility/quality_scaler.cc
++++ b/modules/video_coding/utility/quality_scaler.cc
+@@ -234,6 +234,7 @@ void QualityScaler::CheckQp() {
+ 
+ void QualityScaler::ReportQpLow() {
+   RTC_DCHECK_RUN_ON(&task_checker_);
++  RTC_LOG(LS_INFO) << "ReportQpLow";
+   ClearSamples();
+   observer_->AdaptUp(AdaptationObserverInterface::AdaptReason::kQuality);
+   adapt_called_ = true;
+@@ -241,7 +242,7 @@ void QualityScaler::ReportQpLow() {
+ 
+ void QualityScaler::ReportQpHigh() {
+   RTC_DCHECK_RUN_ON(&task_checker_);
+-
++  RTC_LOG(LS_INFO) << "ReportQpHigh";
+   if (observer_->AdaptDown(
+           AdaptationObserverInterface::AdaptReason::kQuality)) {
+     ClearSamples();
+diff --git a/pc/peer_connection.cc b/pc/peer_connection.cc
+index 0d43da4a513652cef61cc6661eee73a229384907..fbf2978f49013d763ad6c4885cee0f93b9b97221 100644
+--- a/pc/peer_connection.cc
++++ b/pc/peer_connection.cc
+@@ -867,6 +867,8 @@ bool PeerConnectionInterface::RTCConfiguration::operator==(
+     bool disable_link_local_networks;
+     bool enable_rtp_data_channel;
+     absl::optional<int> screencast_min_bitrate;
++    absl::optional<int> h264_qp_high;
++    absl::optional<int> h264_qp_low;
+     absl::optional<bool> combined_audio_video_bwe;
+     absl::optional<bool> enable_dtls_srtp;
+     TcpCandidatePolicy tcp_candidate_policy;
+@@ -938,6 +940,8 @@ bool PeerConnectionInterface::RTCConfiguration::operator==(
+          disable_link_local_networks == o.disable_link_local_networks &&
+          enable_rtp_data_channel == o.enable_rtp_data_channel &&
+          screencast_min_bitrate == o.screencast_min_bitrate &&
++         h264_qp_high == o.h264_qp_high &&
++         h264_qp_low == o.h264_qp_low &&
+          combined_audio_video_bwe == o.combined_audio_video_bwe &&
+          enable_dtls_srtp == o.enable_dtls_srtp &&
+          ice_candidate_pool_size == o.ice_candidate_pool_size &&
+@@ -1359,6 +1363,10 @@ bool PeerConnection::Initialize(
+ 
+   video_options_.screencast_min_bitrate_kbps =
+       configuration.screencast_min_bitrate;
++  video_options_.h264_qp_high =
++      configuration.h264_qp_high;
++  video_options_.h264_qp_low =
++      configuration.h264_qp_low;
+   audio_options_.combined_audio_video_bwe =
+       configuration.combined_audio_video_bwe;
+ 
+@@ -3900,6 +3908,7 @@ PeerConnectionInterface::RTCConfiguration PeerConnection::GetConfiguration() {
+ 
+ RTCError PeerConnection::SetConfiguration(
+     const RTCConfiguration& configuration) {
++
+   RTC_DCHECK_RUN_ON(signaling_thread());
+   TRACE_EVENT0("webrtc", "PeerConnection::SetConfiguration");
+   if (IsClosed()) {
+diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
+index 8af9a7d8c0faed4cda4a4362645c89bf581623dc..bbe673cbebc0c4b8ff027687384679d9d4d3e0af 100644
+--- a/video/video_stream_encoder.cc
++++ b/video/video_stream_encoder.cc
+@@ -636,8 +636,10 @@ void VideoStreamEncoder::SetSource(
+     }
+     degradation_preference_ = degradation_preference;
+ 
+-    if (encoder_)
++    if (encoder_) {
++      RTC_LOG(LS_INFO) << " !!!!! VIDEO STREAM ENCODER SET SOURCE";
+       ConfigureQualityScaler(encoder_->GetEncoderInfo());
++    }
+ 
+     if (!IsFramerateScalingEnabled(degradation_preference) &&
+         max_framerate_ != -1) {
+@@ -1029,6 +1031,12 @@ void VideoStreamEncoder::ReconfigureEncoder() {
+       max_framerate_, source_proxy_->GetActiveSinkWants().max_framerate_fps);
+   overuse_detector_->OnTargetFramerateUpdated(target_framerate);
+ 
++  // use encoder specific settings to modify qp threshold limits for h264
++  if (codec.codecType == kVideoCodecH264) {
++    RTC_LOG(LS_INFO) << "Optional settings to override H264 QP thresholds: {" << codec.H264()->qpLow << ", " << codec.H264()->qpHigh << "}";
++    info.scaling_settings = VideoEncoder::ScalingSettings(codec.H264()->qpLow, codec.H264()->qpHigh);
++  }
++  
+   ConfigureQualityScaler(info);
+ }
+ 
+@@ -1050,6 +1058,7 @@ void VideoStreamEncoder::ConfigureQualityScaler(
+         experimental_thresholds = QualityScalingExperiment::GetQpThresholds(
+             encoder_config_.codec_type);
+       }
++
+       // Since the interface is non-public, std::make_unique can't do this
+       // upcast.
+       AdaptationObserverInterface* observer = this;

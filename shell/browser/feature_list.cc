@@ -32,7 +32,8 @@ void InitializeFeatureList() {
   // https://chromium-review.googlesource.com/c/chromium/src/+/1869562
   // Any website which uses older WebComponents will fail in without this
   // enabled, since Electron does not support origin trials.
-  enable_features += std::string(",") + "WebComponentsV0Enabled";
+  enable_features += std::string(",") + "WebComponentsV0Enabled" +
+                     std::string(",") + "AudioWorkletRealtimeThread";
 
 #if !BUILDFLAG(ENABLE_PICTURE_IN_PICTURE)
   disable_features += std::string(",") + media::kPictureInPicture.name;

@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Mon, 16 Aug 2021 23:39:53 -0400
+Subject: Modify min and target bitrate calculations
+
+
+diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
+index 35b77a99688e67f5d8871eaee61ef8a0b370234e..7d61c3cdce91d2269406ea962d9a3f4948ef959c 100644
+--- a/media/engine/webrtc_video_engine.cc
++++ b/media/engine/webrtc_video_engine.cc
+@@ -3191,10 +3191,12 @@ std::vector<webrtc::VideoStream> EncoderStreamFactory::CreateEncoderStreams(
+             std::max(layers[i].max_bitrate_bps, layers[i].min_bitrate_bps);
+       } else if (encoder_config.simulcast_layers[i].max_bitrate_bps > 0) {
+         // Only max bitrate is configured, make sure min/target are below max.
++
++        // Guilded Patch Change: default min bps to 1/2 max, and target bps to 2/3
+         layers[i].min_bitrate_bps =
+-            std::min(layers[i].min_bitrate_bps, layers[i].max_bitrate_bps);
++            std::min(layers[i].min_bitrate_bps, static_cast<int>(layers[i].max_bitrate_bps / 2));
+         layers[i].target_bitrate_bps =
+-            std::min(layers[i].target_bitrate_bps, layers[i].max_bitrate_bps);
++            std::min(layers[i].target_bitrate_bps, static_cast<int>(layers[i].max_bitrate_bps * 2 / 3));
+       }
+       if (i == layers.size() - 1) {
+         is_highest_layer_max_bitrate_configured =

@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Mon, 16 Aug 2021 21:34:49 -0400
+Subject: enable h264 qp threshold optional constraints
+
+allows setting transport-level proprietary constraints ggH264qpHigh
+and ggH264qpLow. These can be used in conjunction with the webrtc
+patch to override default QP values for the H264 encoder.
+
+diff --git a/third_party/blink/public/platform/web_media_constraints.h b/third_party/blink/public/platform/web_media_constraints.h
+index a6877713ab7d80e4c855270c8b401c68e65edb53..bed9a4557dc784ddf00c798dcb4665a7a5ac9d6e 100644
+--- a/third_party/blink/public/platform/web_media_constraints.h
++++ b/third_party/blink/public/platform/web_media_constraints.h
+@@ -279,6 +279,8 @@ struct WebMediaTrackConstraintSet {
+   LongConstraint goog_high_start_bitrate;
+   BooleanConstraint goog_payload_padding;
+   LongConstraint goog_latency_ms;
++  LongConstraint gg_h264_qp_high;
++  LongConstraint gg_h264_qp_low;
+ 
+   BLINK_PLATFORM_EXPORT bool IsEmpty() const;
+   BLINK_PLATFORM_EXPORT bool HasMandatory() const;
+diff --git a/third_party/blink/renderer/modules/mediastream/media_constraints_impl.cc b/third_party/blink/renderer/modules/mediastream/media_constraints_impl.cc
+index 048e9c7014ef109fcd3a9757967aeb82e85b4199..ee3e684090ffab45a7778ed899fa1c8f02f20893 100644
+--- a/third_party/blink/renderer/modules/mediastream/media_constraints_impl.cc
++++ b/third_party/blink/renderer/modules/mediastream/media_constraints_impl.cc
+@@ -128,6 +128,8 @@ const char kCpuOveruseEncodeUsage[] = "googCpuOveruseEncodeUsage";
+ const char kHighStartBitrate[] = "googHighStartBitrate";
+ const char kPayloadPadding[] = "googPayloadPadding";
+ const char kAudioLatency[] = "latencyMs";
++const char kH264qpHigh[] = "ggH264qpHigh";
++const char kH264qpLow[] = "ggH264qpLow";
+ 
+ // Names that have been used in the past, but should now be ignored.
+ // Kept around for backwards compatibility.
+@@ -272,6 +274,8 @@ static void ParseOldStyleNames(
+     bool report_unknown_names,
+     WebMediaTrackConstraintSet& result,
+     MediaErrorState& error_state) {
++  
++
+   for (const NameValueStringConstraint& constraint : old_names) {
+     if (constraint.name_.Equals(kMinAspectRatio)) {
+       result.aspect_ratio.SetMin(atof(constraint.value_.Utf8().c_str()));
+@@ -409,6 +413,10 @@ static void ParseOldStyleNames(
+       result.goog_payload_padding.SetExact(ToBoolean(constraint.value_));
+     } else if (constraint.name_.Equals(kAudioLatency)) {
+       result.goog_latency_ms.SetExact(atoi(constraint.value_.Utf8().c_str()));
++    } else if (constraint.name_.Equals(kH264qpHigh)) {
++      result.gg_h264_qp_high.SetExact(atoi(constraint.value_.Utf8().c_str()));
++    } else if (constraint.name_.Equals(kH264qpLow)) {
++      result.gg_h264_qp_low.SetExact(atoi(constraint.value_.Utf8().c_str()));
+     } else if (constraint.name_.Equals(kGoogLeakyBucket) ||
+                constraint.name_.Equals(kGoogBeamforming) ||
+                constraint.name_.Equals(kGoogArrayGeometry) ||
+@@ -460,6 +468,7 @@ static WebMediaConstraints CreateFromNamedConstraints(
+     Vector<NameValueStringConstraint>& mandatory,
+     const Vector<NameValueStringConstraint>& optional,
+     MediaErrorState& error_state) {
++
+   WebMediaTrackConstraintSet basic;
+   WebMediaTrackConstraintSet advanced;
+   WebMediaConstraints constraints;
+@@ -487,6 +496,7 @@ WebMediaConstraints Create(ExecutionContext* context,
+                            MediaErrorState& error_state) {
+   Vector<NameValueStringConstraint> optional;
+   Vector<NameValueStringConstraint> mandatory;
++
+   if (!Parse(constraints_dictionary, optional, mandatory)) {
+     error_state.ThrowTypeError("Malformed constraints object.");
+     return WebMediaConstraints();
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection_handler.cc b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection_handler.cc
+index 5b237e73a43f741aa0beb1ebffac31a1af711413..ee0cc62d16b354733e014b30cd823413709f16da 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection_handler.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection_handler.cc
+@@ -214,6 +214,20 @@ void CopyConstraintsIntoRtcConfiguration(
+           &rate)) {
+     configuration->screencast_min_bitrate = rate;
+   }
++  int qpHigh;
++  if (GetConstraintValueAsInteger(
++          constraints,
++          &blink::WebMediaTrackConstraintSet::gg_h264_qp_high,
++          &qpHigh)) {
++    configuration->h264_qp_high = qpHigh;
++  }
++  int qpLow;
++  if (GetConstraintValueAsInteger(
++          constraints,
++          &blink::WebMediaTrackConstraintSet::gg_h264_qp_low,
++          &qpLow)) {
++    configuration->h264_qp_low = qpLow;
++  }
+   configuration->combined_audio_video_bwe = ConstraintToOptional(
+       constraints,
+       &blink::WebMediaTrackConstraintSet::goog_combined_audio_video_bwe);
+diff --git a/third_party/blink/renderer/platform/exported/web_media_constraints.cc b/third_party/blink/renderer/platform/exported/web_media_constraints.cc
+index dcad673ac6788b4fe97a99881a465cbb77515c94..5a4566bf4eb1c927d5a7d5351c7e44a6cc3f56f9 100644
+--- a/third_party/blink/renderer/platform/exported/web_media_constraints.cc
++++ b/third_party/blink/renderer/platform/exported/web_media_constraints.cc
+@@ -387,7 +387,9 @@ WebMediaTrackConstraintSet::WebMediaTrackConstraintSet()
+       goog_cpu_overuse_encode_usage("googCpuOveruseEncodeUsage"),
+       goog_high_start_bitrate("googHighStartBitrate"),
+       goog_payload_padding("googPayloadPadding"),
+-      goog_latency_ms("latencyMs") {}
++      goog_latency_ms("latencyMs"),
++      gg_h264_qp_high("ggH264qpHigh"),
++      gg_h264_qp_low("ggH264qpLow") {}
+ 
+ std::vector<const BaseConstraint*> WebMediaTrackConstraintSet::AllConstraints()
+     const {
+@@ -441,7 +443,9 @@ std::vector<const BaseConstraint*> WebMediaTrackConstraintSet::AllConstraints()
+                                   &goog_cpu_overuse_encode_usage,
+                                   &goog_high_start_bitrate,
+                                   &goog_payload_padding,
+-                                  &goog_latency_ms};
++                                  &goog_latency_ms,
++                                  &gg_h264_qp_high,
++                                  &gg_h264_qp_low};
+   const int element_count = sizeof(temp) / sizeof(temp[0]);
+   return std::vector<const BaseConstraint*>(&temp[0], &temp[element_count]);
+ }

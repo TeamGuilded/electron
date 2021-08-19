@@ -3,3 +3,4 @@ backport_978779.patch
 check_for_null_before_accessing_sctptransport_map.patch
 enable_support_for_optional_h264_qp_thresholds.patch
 modify_min_and_target_bitrate_calculations.patch
+streaming_crash_fixes.patch

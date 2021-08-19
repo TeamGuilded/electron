@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Thu, 19 Aug 2021 18:45:49 -0400
+Subject: streaming crash fixes
+
+
+diff --git a/modules/video_coding/codecs/h264/h264_encoder_impl.cc b/modules/video_coding/codecs/h264/h264_encoder_impl.cc
+index 66861e6e742714bb5d1d8bc78a8934a4edb71b77..d70531d9e9a4bc06ec22e8b7750ef4bb866bdcec 100644
+--- a/modules/video_coding/codecs/h264/h264_encoder_impl.cc
++++ b/modules/video_coding/codecs/h264/h264_encoder_impl.cc
+@@ -255,10 +255,7 @@ int32_t H264EncoderImpl::InitEncode(const VideoCodec* inst,
+ 
+     // Create downscaled image buffers.
+     if (i > 0) {
+-      downscaled_buffers_[i - 1] = I420Buffer::Create(
+-          configurations_[i].width, configurations_[i].height,
+-          configurations_[i].width, configurations_[i].width / 2,
+-          configurations_[i].width / 2);
++      downscaled_buffers_[i - 1] = I420Buffer::Create(configurations_[i].width, configurations_[i].height);
+     }
+ 
+     // Codec_settings uses kbits/second; encoder uses bits/second.
+diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
+index bbe673cbebc0c4b8ff027687384679d9d4d3e0af..976503e0e96c8414acff150582af68d7a01bfa3d 100644
+--- a/video/video_stream_encoder.cc
++++ b/video/video_stream_encoder.cc
+@@ -71,6 +71,9 @@ const int64_t kParameterUpdateIntervalMs = 1000;
+ // Animation is capped to 720p.
+ constexpr int kMaxAnimationPixels = 1280 * 720;
+ 
++// this should match the min layer size set in webrtc_video_engine
++int kMinLayerSize = 16;
++
+ uint32_t abs_diff(uint32_t a, uint32_t b) {
+   return (a < b) ? b - a : a - b;
+ }
+@@ -1315,6 +1318,12 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
+                                                int64_t time_when_posted_us) {
+   RTC_DCHECK_RUN_ON(&encoder_queue_);
+ 
++  // skip encoding frames below min layer size as this will fail checks when
++  // reconfiguring the encoder due to assuming a min size for the frame
++  if (video_frame.width() < kMinLayerSize || video_frame.height() < kMinLayerSize) {
++    return;
++  }
++
+   if (!last_frame_info_ || video_frame.width() != last_frame_info_->width ||
+       video_frame.height() != last_frame_info_->height ||
+       video_frame.is_texture() != last_frame_info_->is_texture) {

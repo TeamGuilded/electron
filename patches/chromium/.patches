@@ -115,3 +115,4 @@ move_networkstateobserver_from_document_to_window.patch
 cherry-pick-0894af410c4e.patch
 cherry-pick-91dd4f79ab5b.patch
 add_prepare_web_contents_creation_delegate_for_nativewindow_open.patch
+extend_num_supported_gamepads.patch

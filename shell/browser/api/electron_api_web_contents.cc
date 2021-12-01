@@ -1068,11 +1068,9 @@ void WebContents::WebContentsCreatedWithFullParams(
 void WebContents::OnPrepareWebContentsCreation(
     content::WebContents::CreateParams& contentsCreateParams,
     const content::mojom::CreateNewWindowParams& windowCreateParams) {
-  // HACK: Until electron PR lands to properly pass the right values
-  // https://github.com/electron/electron/pull/19703
-  std::string::size_type offscreenFlag =
-      windowCreateParams.frame_name.find("\"offscreen\":true");
-  bool isOffscreen = offscreenFlag != std::string::npos;
+  std::string::size_type offscreenFlagIndex =
+      windowCreateParams.raw_features.find("offscreen=true");
+  bool isOffscreen = offscreenFlagIndex != std::string::npos;
 
   if (isOffscreen) {
     auto* view = new OffScreenWebContentsView(true);
@@ -1128,11 +1126,9 @@ void WebContents::AddNewContents(
   auto* tracker = ChildWebContentsTracker::FromWebContents(new_contents.get());
   DCHECK(tracker);
 
-  // HACK: Until electron PR lands to properly pass the right values
-  // https://github.com/electron/electron/pull/19703
-  std::string::size_type offscreenFlag =
-      tracker->frame_name.find("\"offscreen\":true");
-  bool isOffscreen = offscreenFlag != std::string::npos;
+  std::string::size_type offscreenFlagIndex =
+      tracker->raw_features.find("offscreen=true");
+  bool isOffscreen = offscreenFlagIndex != std::string::npos;
 
   auto screenType = Type::kBrowserWindow;
   if (isOffscreen) {

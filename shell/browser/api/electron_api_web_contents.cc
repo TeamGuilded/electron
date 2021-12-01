@@ -1064,7 +1064,6 @@ void WebContents::WebContentsCreatedWithFullParams(
   new WebContentsPreferences(new_contents, dict);
 }
 
-// needed?
 void WebContents::OnPrepareWebContentsCreation(
     content::WebContents::CreateParams& contentsCreateParams,
     const content::mojom::CreateNewWindowParams& windowCreateParams) {

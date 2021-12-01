@@ -75,6 +75,12 @@ namespace gin {
 class Arguments;
 }
 
+namespace content {
+namespace mojom {
+class CreateNewWindowParams;
+}
+}  // namespace content
+
 namespace electron {
 
 class ElectronBrowserContext;
@@ -508,6 +514,11 @@ class WebContents : public gin::Wrappable<WebContents>,
                       const gfx::Rect& initial_rect,
                       bool user_gesture,
                       bool* was_blocked) override;
+
+  void OnPrepareWebContentsCreation(
+      content::WebContents::CreateParams& contentsCreateParams,
+      const content::mojom::CreateNewWindowParams& windowCreateParams) override;
+
   content::WebContents* OpenURLFromTab(
       content::WebContents* source,
       const content::OpenURLParams& params) override;

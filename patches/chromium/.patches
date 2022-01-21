@@ -127,3 +127,5 @@ cherry-pick-6bb320d134b1.patch
 cherry-pick-109fde1088be.patch
 m96_fileapi_move_origin_checks_in_bloburlstore_sooner.patch
 cherry-pick-f781748dcb3c.patch
+add_prepare_web_contents_creation_delegate_for_nativewindow_open.patch
+extend_num_supported_gamepads.patch

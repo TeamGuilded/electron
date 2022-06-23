@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Thu, 23 Jun 2022 15:54:20 -0400
+Subject: allow hardware encoder to work on h264 constrained baseline profile
+
+
+diff --git a/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc b/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc
+index bd9dd7719f5a2d3de93c9d85cc36e787b4f3899f..070c71123ab73f7e0c48098db37908e679b67b05 100644
+--- a/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc
++++ b/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc
+@@ -52,7 +52,7 @@ absl::optional<media::VideoCodecProfile> WebRTCFormatToCodecProfile(
+ // Translate from media::VideoEncodeAccelerator::SupportedProfile to
+ // webrtc::SdpVideoFormat, or return nothing if the profile isn't supported.
+ absl::optional<webrtc::SdpVideoFormat> VEAToWebRTCFormat(
+-    const media::VideoEncodeAccelerator::SupportedProfile& profile) {
++    const media::VideoEncodeAccelerator::SupportedProfile& profile, bool force_constrained_h264) {
+   DCHECK_EQ(profile.max_framerate_denominator, 1U);
+ 
+   if (profile.profile >= media::VP8PROFILE_MIN &&
+@@ -84,7 +84,11 @@ absl::optional<webrtc::SdpVideoFormat> VEAToWebRTCFormat(
+         // - Some peers only expect CBP in negotiation.
+         h264_profile = webrtc::H264::kProfileConstrainedBaseline;
+ #else
+-        h264_profile = webrtc::H264::kProfileBaseline;
++        if (force_constrained_h264) {
++          h264_profile = webrtc::H264::kProfileConstrainedBaseline;
++        } else {
++          h264_profile = webrtc::H264::kProfileBaseline;
++        }
+ #endif  // defined(OS_ANDROID)
+         break;
+       case media::H264PROFILE_MAIN:
+@@ -158,10 +162,22 @@ SupportedFormats GetSupportedFormatsInternal(
+   // querying GPU process.
+   supported_formats.unknown = false;
+   for (const auto& profile : *profiles) {
+-    absl::optional<webrtc::SdpVideoFormat> format = VEAToWebRTCFormat(profile);
++    absl::optional<webrtc::SdpVideoFormat> format = VEAToWebRTCFormat(profile, false);
+     if (format) {
+       supported_formats.profiles.push_back(profile.profile);
+       supported_formats.sdp_formats.push_back(std::move(*format));
++
++      // Guilded Patch - If we detect that the hardware encoder has returned support for
++      // H264 Baseline Profile (42001f), we are also going to create a matching SDP format for
++      // H264 Constrained Baseline (42e01f) and push this into our WebRTC supported formats.
++      // If the HW encoder supports baseline, it will also support constrained baseline, we just
++      // need to trick our factory into recognizing this.
++      if (profile.profile == media::H264PROFILE_BASELINE) {
++        absl::optional<webrtc::SdpVideoFormat> constrainedBaselineFormat = VEAToWebRTCFormat(profile, true);;
++        if (constrainedBaselineFormat) {
++          supported_formats.sdp_formats.push_back(std::move(*constrainedBaselineFormat));
++        }
++      }
+     }
+   }
+ 

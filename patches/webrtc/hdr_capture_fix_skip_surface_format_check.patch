@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Thu, 23 Jun 2022 15:18:48 -0400
+Subject: HDR capture fix: skip surface format check
+
+
+diff --git a/modules/desktop_capture/win/dxgi_output_duplicator.cc b/modules/desktop_capture/win/dxgi_output_duplicator.cc
+index 177e12632c14ed576d7e8219ffe4d35e3444cfdf..f9c030ac1154d427d3dcd691a3fadc0e72ce3c44 100644
+--- a/modules/desktop_capture/win/dxgi_output_duplicator.cc
++++ b/modules/desktop_capture/win/dxgi_output_duplicator.cc
+@@ -111,12 +111,18 @@ bool DxgiOutputDuplicator::DuplicateOutput() {
+ 
+   memset(&desc_, 0, sizeof(desc_));
+   duplication_->GetDesc(&desc_);
+-  if (desc_.ModeDesc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+-    RTC_LOG(LS_ERROR) << "IDXGIDuplicateOutput does not use RGBA (8 bit) "
+-                      << "format, which is required by downstream components, "
+-                      << "format is " << desc_.ModeDesc.Format;
+-    return false;
+-  }
++
++  // Guilded Patch - We can skip this check. Getting the format from the surface
++  // on HDR monitors will fail this check. However, textures captured from this
++  // surface are guaranteed to be returned in 8-bit format so it is not necessary.
++  // See: https://bugs.chromium.org/p/chromium/issues/detail?id=1244112
++
++  // if (desc_.ModeDesc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
++  //   RTC_LOG(LS_ERROR) << "IDXGIDuplicateOutput does not use RGBA (8 bit) "
++  //                     << "format, which is required by downstream components, "
++  //                     << "format is " << desc_.ModeDesc.Format;
++  //   return false;
++  // }
+ 
+   if (static_cast<int>(desc_.ModeDesc.Width) != desktop_rect_.width() ||
+       static_cast<int>(desc_.ModeDesc.Height) != desktop_rect_.height()) {

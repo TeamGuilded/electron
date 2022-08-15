@@ -1,3 +1,4 @@
 add_thread_local_to_x_error_trap_cc.patch
 merge_to_m96_sdp_reject_large_number_of_channels.patch
 hdr_capture_fix_skip_surface_format_check.patch
+only_apply_external_encoder_to_highest_quality_simulcast_stream.patch

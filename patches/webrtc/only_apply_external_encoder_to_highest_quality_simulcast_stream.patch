@@ -1,0 +1,129 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Mon, 15 Aug 2022 14:57:50 -0400
+Subject: only apply external encoder to highest quality simulcast stream
+
+Only use external (read: hardware) encoder on the highest quality simulcast stream. This will reduce
+the number of external encoder processes we need to not hit NVENC limits while still improving perf
+on the most demanding stream layer.
+
+diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
+index d4137f621cbccf3b700ba94bb20a2af71d04736b..93469e1626c116a0439c1d5cf7c01e7ea2d9d178 100644
+--- a/media/engine/simulcast_encoder_adapter.cc
++++ b/media/engine/simulcast_encoder_adapter.cc
+@@ -341,7 +341,7 @@ int SimulcastEncoderAdapter::InitEncode(
+   std::unique_ptr<EncoderContext> encoder_context = FetchOrCreateEncoderContext(
+       /*is_lowest_quality_stream=*/(
+           is_legacy_singlecast ||
+-          codec_.simulcastStream[lowest_quality_stream_idx].active));
++          codec_.simulcastStream[lowest_quality_stream_idx].active), /*prefer_hardware_accel=*/lowest_quality_stream_idx == highest_quality_stream_idx);
+   if (encoder_context == nullptr) {
+     return WEBRTC_VIDEO_CODEC_MEMORY;
+   }
+@@ -395,7 +395,7 @@ int SimulcastEncoderAdapter::InitEncode(
+ 
+     if (encoder_context == nullptr) {
+       encoder_context = FetchOrCreateEncoderContext(
+-          /*is_lowest_quality_stream=*/stream_idx == lowest_quality_stream_idx);
++          /*is_lowest_quality_stream=*/stream_idx == lowest_quality_stream_idx, /*prefer_hardware_accel=*/stream_idx == highest_quality_stream_idx);
+     }
+     if (encoder_context == nullptr) {
+       Release();
+@@ -694,7 +694,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+ 
+ std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
+ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+-    bool is_lowest_quality_stream) const {
++    bool is_lowest_quality_stream, bool prefer_hardware_accel) const {
+   bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
+                                  is_lowest_quality_stream &&
+                                  prefer_temporal_support_on_base_layer_;
+@@ -702,11 +702,14 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+   // Toggling of `prefer_temporal_support` requires encoder recreation. Find
+   // and reuse encoder with desired `prefer_temporal_support`. Otherwise, if
+   // there is no such encoder in the cache, create a new instance.
++  // Guilded Patch:
++  // Similarly for prefering hardware encoding vs not, we only want to select
++  // a cached encoder that matches this preference
+   auto encoder_context_iter =
+       std::find_if(cached_encoder_contexts_.begin(),
+                    cached_encoder_contexts_.end(), [&](auto& encoder_context) {
+                      return encoder_context->prefer_temporal_support() ==
+-                            prefer_temporal_support;
++                            prefer_temporal_support && encoder_context->PrimaryInfo().is_hardware_accelerated == prefer_hardware_accel;
+                    });
+ 
+   std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context;
+@@ -714,22 +717,38 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+     encoder_context = std::move(*encoder_context_iter);
+     cached_encoder_contexts_.erase(encoder_context_iter);
+   } else {
+-    std::unique_ptr<VideoEncoder> encoder =
+-        primary_encoder_factory_->CreateVideoEncoder(video_format_);
+-    VideoEncoder::EncoderInfo primary_info = encoder->GetEncoderInfo();
+-    VideoEncoder::EncoderInfo fallback_info = primary_info;
+-    if (fallback_encoder_factory_ != nullptr) {
+-      std::unique_ptr<VideoEncoder> fallback_encoder =
++    // Guilded Patch:
++    // for the lower quality streams we will use the fallback (read: software) encoder
++    // as long as one was provided
++    if (!prefer_hardware_accel && fallback_encoder_factory_ != nullptr) {
++      std::unique_ptr<VideoEncoder> encoder =
+           fallback_encoder_factory_->CreateVideoEncoder(video_format_);
+-      fallback_info = fallback_encoder->GetEncoderInfo();
+-      encoder = CreateVideoEncoderSoftwareFallbackWrapper(
+-          std::move(fallback_encoder), std::move(encoder),
+-          prefer_temporal_support);
+-    }
++      VideoEncoder::EncoderInfo primary_info = encoder->GetEncoderInfo();
++      VideoEncoder::EncoderInfo fallback_info = primary_info;
+ 
+-    encoder_context = std::make_unique<SimulcastEncoderAdapter::EncoderContext>(
++      encoder_context = std::make_unique<SimulcastEncoderAdapter::EncoderContext>(
+         std::move(encoder), prefer_temporal_support, primary_info,
+         fallback_info);
++    } else {
++      std::unique_ptr<VideoEncoder> encoder =
++          primary_encoder_factory_->CreateVideoEncoder(video_format_);
++      VideoEncoder::EncoderInfo primary_info = encoder->GetEncoderInfo();
++      VideoEncoder::EncoderInfo fallback_info = primary_info;
++      if (fallback_encoder_factory_ != nullptr) {
++        std::unique_ptr<VideoEncoder> fallback_encoder =
++            fallback_encoder_factory_->CreateVideoEncoder(video_format_);
++        fallback_info = fallback_encoder->GetEncoderInfo();
++        encoder = CreateVideoEncoderSoftwareFallbackWrapper(
++            std::move(fallback_encoder), std::move(encoder),
++            prefer_temporal_support);
++      }
++
++      encoder_context = std::make_unique<SimulcastEncoderAdapter::EncoderContext>(
++        std::move(encoder), prefer_temporal_support, primary_info,
++        fallback_info);
++    }
++
++
+   }
+ 
+   encoder_context->encoder().RegisterEncodeCompleteCallback(
+@@ -834,7 +853,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+     // Create one encoder and query it.
+ 
+     std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context =
+-        FetchOrCreateEncoderContext(true);
++        FetchOrCreateEncoderContext(true, true);
+ 
+     const VideoEncoder::EncoderInfo& primary_info =
+         encoder_context->PrimaryInfo();
+diff --git a/media/engine/simulcast_encoder_adapter.h b/media/engine/simulcast_encoder_adapter.h
+index 1d2200bfb4fc6dada2c99314001eab7387efe4b9..ae07c94081d36bba1d28fd598c7cdfa9cd693e1a 100644
+--- a/media/engine/simulcast_encoder_adapter.h
++++ b/media/engine/simulcast_encoder_adapter.h
+@@ -150,7 +150,7 @@ class RTC_EXPORT SimulcastEncoderAdapter : public VideoEncoder {
+   // `cached_encoder_contexts_`. It's const because it's used from
+   // const GetEncoderInfo().
+   std::unique_ptr<EncoderContext> FetchOrCreateEncoderContext(
+-      bool is_lowest_quality_stream) const;
++      bool is_lowest_quality_stream, bool prefer_hardware_accel) const;
+ 
+   webrtc::VideoCodec MakeStreamCodec(const webrtc::VideoCodec& codec,
+                                      int stream_idx,

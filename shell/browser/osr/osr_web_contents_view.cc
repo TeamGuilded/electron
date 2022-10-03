@@ -87,7 +87,12 @@ void OffScreenWebContentsView::OnWindowClosed() {
 }
 
 gfx::Size OffScreenWebContentsView::GetSize() {
-  return native_window_ ? native_window_->GetSize() : gfx::Size();
+  // guilded patch - return 1 by 1 size for offscreen window, instead of 0x0,
+  // which crashes the GPU process for auto:blank offscreen portal windows
+  // when the native view is set, the size/layout will be dynamically updated
+  // see: FrameSinkVideoCapturerImpl::SetResolutionConstraints in
+  // src\dbus\components\viz\service\frame_sinks\video_capture\frame_sink_video_capturer_impl.cc
+  return native_window_ ? native_window_->GetSize() : gfx::Size(1, 1);
 }
 
 #if !BUILDFLAG(IS_MAC)

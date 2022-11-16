@@ -1,3 +1,4 @@
 add_thread_local_to_x_error_trap_cc.patch
 hdr_screen_capture_fix.patch
 limit_hw_encode_to_highest_quality_simulcast_layer.patch
+patch_opus_dtx_handling.patch

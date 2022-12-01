@@ -128,3 +128,6 @@ fix_on-screen-keyboard_hides_on_input_blur_in_webview.patch
 build_allow_electron_to_use_exec_script.patch
 cherry-pick-67c9cbc784d6.patch
 cherry-pick-933cc81c6bad.patch
+extend_num_supported_gamepads.patch
+add_prepare_web_contents_creation_delegate_for_nativewindow_open.patch
+enable_h264_cbp_hw_encoding.patch

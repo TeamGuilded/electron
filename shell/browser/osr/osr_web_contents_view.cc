@@ -14,7 +14,19 @@ namespace electron {
 OffScreenWebContentsView::OffScreenWebContentsView(
     bool transparent,
     const OnPaintCallback& callback)
-    : transparent_(transparent), callback_(callback) {
+    : transparent_(transparent),
+      offscreenPaintCallback_(callback),
+      callback_(base::BindRepeating(&OffScreenWebContentsView::OnPaint,
+                                    base::Unretained(this))) {
+#if BUILDFLAG(IS_MAC)
+  PlatformCreate();
+#endif
+}
+
+OffScreenWebContentsView::OffScreenWebContentsView(bool transparent)
+    : transparent_(transparent),
+      callback_(base::BindRepeating(&OffScreenWebContentsView::OnPaint,
+                                    base::Unretained(this))) {
 #if BUILDFLAG(IS_MAC)
   PlatformCreate();
 #endif
@@ -27,6 +39,18 @@ OffScreenWebContentsView::~OffScreenWebContentsView() {
 #if BUILDFLAG(IS_MAC)
   PlatformDestroy();
 #endif
+}
+
+void OffScreenWebContentsView::SetPaintCallback(
+    const OnPaintCallback& callback) {
+  this->offscreenPaintCallback_ = callback;
+}
+
+void OffScreenWebContentsView::OnPaint(const gfx::Rect& dirty_rect,
+                                       const SkBitmap& bitmap) {
+  if (this->offscreenPaintCallback_) {
+    this->offscreenPaintCallback_.Run(dirty_rect, bitmap);
+  }
 }
 
 void OffScreenWebContentsView::SetWebContents(
@@ -63,7 +87,12 @@ void OffScreenWebContentsView::OnWindowClosed() {
 }
 
 gfx::Size OffScreenWebContentsView::GetSize() {
-  return native_window_ ? native_window_->GetSize() : gfx::Size();
+  // guilded patch - return 1 by 1 size for offscreen window, instead of 0x0,
+  // which crashes the GPU process for auto:blank offscreen portal windows
+  // when the native view is set, the size/layout will be dynamically updated
+  // see: FrameSinkVideoCapturerImpl::SetResolutionConstraints in
+  // src\dbus\components\viz\service\frame_sinks\video_capture\frame_sink_video_capturer_impl.cc
+  return native_window_ ? native_window_->GetSize() : gfx::Size(1, 1);
 }
 
 #if !BUILDFLAG(IS_MAC)

@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Thu, 8 Sep 2022 17:12:50 -0400
+Subject: enable h264 cbp hw encoding
+
+Backports an existing patch to enable HW encoding for h264 constrained
+baseline profile and also un-blacklists nVidia cards from performing
+HW encoding
+
+diff --git a/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc b/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc
+index 890b86c9fc5fcae34f8a3859579a138af0ad6b99..44da8985e77e1d0d9f6e9ecf0c74cea75f044552 100644
+--- a/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc
++++ b/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc
+@@ -681,24 +681,30 @@ bool MediaFoundationVideoEncodeAccelerator::ActivateAsyncEncoder(
+         DCHECK(SUCCEEDED(hr));
+         auto vendor = GetDriverVendor(pp_activate[i]);
+ 
++        // Guilded Patch: Skip this check as it disables HW Encoding for ALL NVIDIA GPUs
++        // not just specific SKUs and it also appears that this issue has already been
++        // resolved.
++
+         // Skip NVIDIA GPU due to https://crbug.com/1088650 for constrained
+         // baseline profile H.264 encoding, and go to the next instance
+         // according to merit value.
+-        if (codec_ == VideoCodec::kH264 && is_constrained_h264) {
+-          // Get the vendor id.
+-          base::win::ScopedCoMem<WCHAR> vendor_id;
+-          UINT32 id_length;
+-          pp_activate[i]->GetAllocatedString(
+-              MFT_ENUM_HARDWARE_VENDOR_ID_Attribute, &vendor_id, &id_length);
+-          if (!_wcsnicmp(vendor_id, L"VEN_10DE", id_length)) {
+-            DLOG(WARNING)
+-                << "Skipped NVIDIA GPU due to https://crbug.com/1088650";
+-            pp_activate[i]->ShutdownObject();
+-            encoder_.Reset();
+-            hr = E_FAIL;
+-            continue;
+-          }
+-        }
++        // if (codec_ == VideoCodec::kH264 && is_constrained_h264) {
++        //   // Get the vendor id.
++        //   base::win::ScopedCoMem<WCHAR> vendor_id;
++        //   UINT32 id_length;
++        //   pp_activate[i]->GetAllocatedString(
++        //       MFT_ENUM_HARDWARE_VENDOR_ID_Attribute, &vendor_id, &id_length);
++        //   if (!_wcsnicmp(vendor_id, L"VEN_10DE", id_length)) {
++        //     DLOG(WARNING)
++        //         << "Skipped NVIDIA GPU due to https://crbug.com/1088650";
++        //     pp_activate[i]->ShutdownObject();
++        //     encoder_.Reset();
++        //     hr = E_FAIL;
++        //     continue;
++        //   }
++        // }
++
++        // End Guilded Patch
+ 
+         activate_ = pp_activate[i];
+         vendor_ = vendor;
+diff --git a/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc b/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc
+index 38f0edd4db86048d709bd8e23319490f070f8c4b..c25ec7472a9908d944ef4f0e9f2b8add5e46dcd4 100644
+--- a/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc
++++ b/third_party/blink/renderer/platform/peerconnection/rtc_video_encoder_factory.cc
+@@ -174,6 +174,19 @@ SupportedFormats GetSupportedFormatsInternal(
+       supported_formats.scalability_modes.push_back(profile.scalability_modes);
+       supported_formats.sdp_formats.push_back(std::move(*format));
+ 
++      // Guilded Patch:
++      // Backport a portion of https://chromium.googlesource.com/chromium/src/+/40c17c7be606275ccde514b2b074859246752f7a%5E%21/
++      // For some reason the changes to this file did not land in our current electron version
++#if defined(OS_WIN)
++      if (profile.profile == media::VideoCodecProfile::H264PROFILE_BASELINE) {
++        supported_formats.profiles.push_back(profile.profile);
++        supported_formats.scalability_modes.push_back(
++            profile.scalability_modes);
++        cricket::AddH264ConstrainedBaselineProfileToSupportedFormats(
++            &supported_formats.sdp_formats);
++      }
++#endif
++
+ #if BUILDFLAG(IS_WIN)
+       if (media::IsMediaFoundationH264CbpEncodingEnabled() &&
+           profile.profile == media::VideoCodecProfile::H264PROFILE_BASELINE) {

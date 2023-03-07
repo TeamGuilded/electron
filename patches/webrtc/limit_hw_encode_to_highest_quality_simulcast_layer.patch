@@ -8,10 +8,10 @@ use hardware encoding on the largest (highest quality)
 spatial layer of a simulcast stream.
 
 diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
-index e1dfc9460929235c2e9196ad561fe1a6adc66de4..6df212c19d01086a8140c819c91fc2117312f334 100644
+index 4a53b8027c7468c2d5d5c318df05e86f549f637e..0130172a2ed36688614df617bfb499d3d8a30d9b 100644
 --- a/media/engine/simulcast_encoder_adapter.cc
 +++ b/media/engine/simulcast_encoder_adapter.cc
-@@ -336,7 +336,8 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -335,7 +335,8 @@ int SimulcastEncoderAdapter::InitEncode(
    std::unique_ptr<EncoderContext> encoder_context = FetchOrCreateEncoderContext(
        /*is_lowest_quality_stream=*/(
            is_legacy_singlecast ||
@@ -21,7 +21,7 @@ index e1dfc9460929235c2e9196ad561fe1a6adc66de4..6df212c19d01086a8140c819c91fc211
    if (encoder_context == nullptr) {
      return WEBRTC_VIDEO_CODEC_MEMORY;
    }
-@@ -390,7 +391,8 @@ int SimulcastEncoderAdapter::InitEncode(
+@@ -389,7 +390,8 @@ int SimulcastEncoderAdapter::InitEncode(
  
      if (encoder_context == nullptr) {
        encoder_context = FetchOrCreateEncoderContext(
@@ -31,7 +31,7 @@ index e1dfc9460929235c2e9196ad561fe1a6adc66de4..6df212c19d01086a8140c819c91fc211
      }
      if (encoder_context == nullptr) {
        Release();
-@@ -689,7 +691,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+@@ -688,7 +690,7 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
  
  std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
  SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
@@ -40,7 +40,7 @@ index e1dfc9460929235c2e9196ad561fe1a6adc66de4..6df212c19d01086a8140c819c91fc211
    bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
                                   is_lowest_quality_stream &&
                                   prefer_temporal_support_on_base_layer_;
-@@ -701,7 +703,7 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -700,7 +702,7 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
        std::find_if(cached_encoder_contexts_.begin(),
                     cached_encoder_contexts_.end(), [&](auto& encoder_context) {
                       return encoder_context->prefer_temporal_support() ==
@@ -49,7 +49,7 @@ index e1dfc9460929235c2e9196ad561fe1a6adc66de4..6df212c19d01086a8140c819c91fc211
                     });
  
    std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context;
-@@ -722,7 +724,7 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+@@ -721,7 +723,7 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
      VideoEncoder::EncoderInfo primary_info;
      VideoEncoder::EncoderInfo fallback_info;
  
@@ -58,7 +58,7 @@ index e1dfc9460929235c2e9196ad561fe1a6adc66de4..6df212c19d01086a8140c819c91fc211
        primary_info = primary_encoder->GetEncoderInfo();
        fallback_info = primary_info;
  
-@@ -854,7 +856,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+@@ -853,7 +855,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
      // Create one encoder and query it.
  
      std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context =
@@ -68,7 +68,7 @@ index e1dfc9460929235c2e9196ad561fe1a6adc66de4..6df212c19d01086a8140c819c91fc211
        return encoder_info;
      }
 diff --git a/media/engine/simulcast_encoder_adapter.h b/media/engine/simulcast_encoder_adapter.h
-index e6b6badbe54f7ed2baf8227e299e87df7fb1aab1..9382ab66644a001c5b39f7057e7c1d9b9da5cb5a 100644
+index ef8205e91af724cf6d96c16c42ee0aaafc2c602f..987467257ce5230b375fc5b1a626d87e1baec704 100644
 --- a/media/engine/simulcast_encoder_adapter.h
 +++ b/media/engine/simulcast_encoder_adapter.h
 @@ -150,7 +150,7 @@ class RTC_EXPORT SimulcastEncoderAdapter : public VideoEncoder {

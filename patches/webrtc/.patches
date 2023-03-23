@@ -1,1 +1,2 @@
 fix_fallback_to_x11_capturer_on_wayland.patch
+hdr_screen_capture_fix.patch

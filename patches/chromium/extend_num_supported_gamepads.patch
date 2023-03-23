@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Thu, 23 Mar 2023 11:52:03 -0400
+Subject: extend num supported gamepads
+
+Guilded Path: Extended the maximum number of supported gamepad devices
+
+diff --git a/device/gamepad/public/cpp/gamepads.h b/device/gamepad/public/cpp/gamepads.h
+index 28f6ced7058ed83bd5222a15cb185567ddd68332..9e87614fc93773497d82b798af232d84661c9c76 100644
+--- a/device/gamepad/public/cpp/gamepads.h
++++ b/device/gamepad/public/cpp/gamepads.h
+@@ -18,7 +18,7 @@ namespace device {
+ // browser.
+ class COMPONENT_EXPORT(GAMEPAD_PUBLIC) Gamepads {
+  public:
+-  static constexpr size_t kItemsLengthCap = 4;
++  static constexpr size_t kItemsLengthCap = 8;
+ 
+   // Gamepad data for N separate gamepad devices.
+   Gamepad items[kItemsLengthCap];

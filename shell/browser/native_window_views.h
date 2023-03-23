@@ -223,6 +223,8 @@ class NativeWindowViews : public NativeWindow,
   void HandleSizeEvent(WPARAM w_param, LPARAM l_param);
   void ResetWindowControls();
   void SetForwardMouseMessages(bool forward);
+  static BOOL CALLBACK FindLegacyWinFromChildWindowsProc(HWND hWnd,
+                                                         LPARAM lParam);
   static LRESULT CALLBACK SubclassProc(HWND hwnd,
                                        UINT msg,
                                        WPARAM w_param,

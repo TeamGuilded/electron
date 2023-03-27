@@ -706,8 +706,32 @@ WebContents::WebContents(v8::Isolate* isolate,
       << "Can't take ownership of a remote WebContents";
   auto session = Session::CreateFrom(isolate, GetBrowserContext());
   session_.Reset(isolate, session.ToV8());
-  InitWithSessionAndOptions(isolate, std::move(web_contents), session,
-                            gin::Dictionary::CreateEmpty(isolate));
+
+  gin::Dictionary options = gin::Dictionary::CreateEmpty(isolate);
+  options.Set("transparent", true);
+
+  if (type == Type::kOffScreen) {
+    options.Set("frame", false);
+
+    gin::Dictionary webPreferences = gin::Dictionary::CreateEmpty(isolate);
+    webPreferences.Set("offscreen", true);
+    webPreferences.Set("transparent", true);
+    options.Set("webPreferences", webPreferences);
+
+    OffScreenWebContentsView* offscreenView = GetOffScreenWebContentsView();
+    offscreenView->SetWebContents(web_contents.get());
+    offscreenView->SetPaintCallback(
+        base::BindRepeating(&WebContents::OnPaint, base::Unretained(this)));
+  }
+
+  // We may not call LoadURL on pre-created webcontents, so set background to
+  // always be transparent
+  auto* const view = web_contents.get()->GetRenderWidgetHostView();
+  if (view) {
+    view->SetBackgroundColor(SK_ColorTRANSPARENT);
+  }
+
+  InitWithSessionAndOptions(isolate, std::move(web_contents), session, options);
 }
 
 WebContents::WebContents(v8::Isolate* isolate,
@@ -1083,6 +1107,20 @@ void WebContents::WebContentsCreatedWithFullParams(
   new WebContentsPreferences(new_contents, dict);
 }
 
+void WebContents::OnPrepareWebContentsCreation(
+    content::WebContents::CreateParams& contentsCreateParams,
+    const content::mojom::CreateNewWindowParams& windowCreateParams) {
+  std::string::size_type offscreenFlagIndex =
+      windowCreateParams.raw_features.find("offscreen=true");
+  bool isOffscreen = offscreenFlagIndex != std::string::npos;
+
+  if (isOffscreen) {
+    auto* view = new OffScreenWebContentsView(true);
+    contentsCreateParams.view = view;
+    contentsCreateParams.delegate_view = view;
+  }
+}
+
 bool WebContents::IsWebContentsCreationOverridden(
     content::SiteInstance* source_site_instance,
     content::mojom::WindowContainerType window_container_type,
@@ -1129,11 +1167,20 @@ void WebContents::AddNewContents(
   auto* tracker = ChildWebContentsTracker::FromWebContents(new_contents.get());
   DCHECK(tracker);
 
+  std::string::size_type offscreenFlagIndex =
+      tracker->raw_features.find("offscreen=true");
+  bool isOffscreen = offscreenFlagIndex != std::string::npos;
+
+  auto screenType = Type::kBrowserWindow;
+  if (isOffscreen) {
+    screenType = Type::kOffScreen;
+  }
+
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
 
   v8::HandleScope handle_scope(isolate);
   auto api_web_contents =
-      CreateAndTake(isolate, std::move(new_contents), Type::kBrowserWindow);
+      CreateAndTake(isolate, std::move(new_contents), screenType);
 
   // We call RenderFrameCreated here as at this point the empty "about:blank"
   // render frame has already been created.  If the window never navigates again

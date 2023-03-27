@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Thu, 23 Mar 2023 12:35:26 -0400
+Subject: Enable NVIDIA CBP H264 Enconding
+
+Guilded Patch: Skip faulty check which disables CBP H264 HW encoding for
+_all_ NVIDIA GPUs
+
+diff --git a/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc b/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc
+index a6d566c05c36334e26c557b9fc19c297e02e2fe9..10d7e79251984d84ec24f6e09ea658037b8d7a10 100644
+--- a/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc
++++ b/media/gpu/windows/media_foundation_video_encode_accelerator_win.cc
+@@ -887,6 +887,10 @@ bool MediaFoundationVideoEncodeAccelerator::ActivateAsyncEncoder(
+       }
+     }
+ 
++    // Guilded Patch: Skip this check as it disables HW Encoding for ALL NVIDIA GPUs
++    // not just specific SKUs and it also appears that this issue has already been
++    // resolved.
++    /*
+     // Skip NVIDIA GPU due to https://crbug.com/1088650 for constrained
+     // baseline profile H.264 encoding, and go to the next instance according
+     // to merit value.
+@@ -895,6 +899,7 @@ bool MediaFoundationVideoEncodeAccelerator::ActivateAsyncEncoder(
+       DLOG(WARNING) << "Skipped NVIDIA GPU due to https://crbug.com/1088650";
+       continue;
+     }
++    */
+ 
+     DCHECK(!encoder_);
+     DCHECK(!activate_);

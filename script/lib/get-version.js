@@ -18,5 +18,10 @@ module.exports.getElectronVersion = () => {
     console.error(output.stderr);
     throw new Error('Failed to get current electron version');
   }
-  return output.stdout.toString().trim().replace(/^v/g, '');
+
+  // Guilded Patch: temporary fix until we fix our tagging scheme.
+  // we need to truncate our appended build identifier from the retrieved tag to get
+  // a correct version
+  const version = output.stdout.toString().trim().replace(/^v/g, '').split('-')[0];
+  return version;
 };

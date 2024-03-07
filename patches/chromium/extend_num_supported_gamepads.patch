@@ -6,10 +6,10 @@ Subject: extend num supported gamepads
 Guilded Path: Extended the maximum number of supported gamepad devices
 
 diff --git a/device/gamepad/public/cpp/gamepads.h b/device/gamepad/public/cpp/gamepads.h
-index 28f6ced7058ed83bd5222a15cb185567ddd68332..9e87614fc93773497d82b798af232d84661c9c76 100644
+index 62b2ecada5e7dfd6bfada99ceb7d9e61b9af3b2e..80353a4ac020b5379e93ec1963c5ff1fe527bbca 100644
 --- a/device/gamepad/public/cpp/gamepads.h
 +++ b/device/gamepad/public/cpp/gamepads.h
-@@ -18,7 +18,7 @@ namespace device {
+@@ -16,7 +16,7 @@ namespace device {
  // browser.
  class COMPONENT_EXPORT(GAMEPAD_PUBLIC) Gamepads {
   public:

@@ -7,10 +7,10 @@ Guilded Patch: Offscreen Windows
 Original Author: Chevon C
 
 diff --git a/content/browser/web_contents/web_contents_impl.cc b/content/browser/web_contents/web_contents_impl.cc
-index 0fbb52bf4f699c64113ce60f7ab04cca79834054..23406faecd7808751567b4697bddf637a6818397 100644
+index e49ccf4ffc115a78abceeddd7f452aeeb5c6a917..8a1c5e57b53e3e91da5fe591f38c0d498c8d8de7 100644
 --- a/content/browser/web_contents/web_contents_impl.cc
 +++ b/content/browser/web_contents/web_contents_impl.cc
-@@ -4129,6 +4129,9 @@ FrameTree* WebContentsImpl::CreateNewWindow(
+@@ -4492,6 +4492,9 @@ FrameTree* WebContentsImpl::CreateNewWindow(
    if (!new_contents) {
      if (!is_guest) {
        create_params.context = view_->GetNativeView();
@@ -21,10 +21,10 @@ index 0fbb52bf4f699c64113ce60f7ab04cca79834054..23406faecd7808751567b4697bddf637
      } else {
        new_contents =
 diff --git a/content/public/browser/web_contents_delegate.h b/content/public/browser/web_contents_delegate.h
-index 6236ff3116fc7064cfcf8d35e41eaa3a43a8a2cf..a0ef65bfa455b39ce8b22ecd6a671d7d724ba40c 100644
+index 8e15506e7c2da40a1288554d2b75d2c0951f07ad..cd694d13826a2e0800eb0d53d24b6ad24a109b67 100644
 --- a/content/public/browser/web_contents_delegate.h
 +++ b/content/public/browser/web_contents_delegate.h
-@@ -69,6 +69,12 @@ struct NativeWebKeyboardEvent;
+@@ -70,6 +70,12 @@ struct NativeWebKeyboardEvent;
  struct Referrer;
  }  // namespace content
  
@@ -37,7 +37,7 @@ index 6236ff3116fc7064cfcf8d35e41eaa3a43a8a2cf..a0ef65bfa455b39ce8b22ecd6a671d7d
  namespace device {
  namespace mojom {
  class GeolocationContext;
-@@ -349,6 +355,11 @@ class CONTENT_EXPORT WebContentsDelegate {
+@@ -351,6 +357,11 @@ class CONTENT_EXPORT WebContentsDelegate {
        const mojom::CreateNewWindowParams& params,
        WebContents* new_contents);
  

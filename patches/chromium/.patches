@@ -131,3 +131,6 @@ fix_suppress_clang_-wimplicit-const-int-float-conversion_in.patch
 cherry-pick-e7ffe20ebfac.patch
 fix_getcursorscreenpoint_wrongly_returns_0_0.patch
 fix_add_support_for_skipping_first_2_no-op_refreshes_in_thumb_cap.patch
+extend_num_supported_gamepads.patch
+add_prepare_web_contents_creation_delegate_for_native_window_open.patch
+enable_nvidia_cbp_h264_encoding.patch

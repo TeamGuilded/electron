@@ -31,10 +31,12 @@ class OffScreenWebContentsView : public content::WebContentsView,
                                  public NativeWindowObserver {
  public:
   OffScreenWebContentsView(bool transparent, const OnPaintCallback& callback);
+  OffScreenWebContentsView(bool transparent);
   ~OffScreenWebContentsView() override;
 
   void SetWebContents(content::WebContents*);
   void SetNativeWindow(NativeWindow* window);
+  void SetPaintCallback(const OnPaintCallback& callback);
 
   // NativeWindowObserver:
   void OnWindowResize() override;
@@ -95,6 +97,8 @@ class OffScreenWebContentsView : public content::WebContentsView,
   void PlatformDestroy();
 #endif
 
+  void OnPaint(const gfx::Rect& dirty_rect, const SkBitmap& bitmap);
+
   OffScreenRenderWidgetHostView* GetView() const;
 
   raw_ptr<NativeWindow> native_window_ = nullptr;
@@ -102,6 +106,7 @@ class OffScreenWebContentsView : public content::WebContentsView,
   const bool transparent_;
   bool painting_ = true;
   int frame_rate_ = 60;
+  OnPaintCallback offscreenPaintCallback_;
   OnPaintCallback callback_;
 
   // Weak refs.

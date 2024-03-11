@@ -499,6 +499,18 @@ void NativeWindowViews::ResetWindowControls() {
 }
 
 void NativeWindowViews::SetForwardMouseMessages(bool forward) {
+  // It's possible that the legacy_window_ is not set when spawning child
+  // windows (ex: window.open JS api). The WM_PARENTNOTIFY gets sent to the
+  // initial opener/parent when the legacy window is created, then the legacy
+  // win gets re-attached to the newly created host native window. Here,
+  // manual grab the legacy window if it's not yet being tracked
+  if (!legacy_window_) {
+    HWND parent_window = this->GetNativeWindowHandle();
+    LPARAM native_view = reinterpret_cast<LPARAM>(this);
+    EnumChildWindows(parent_window, FindLegacyWinFromChildWindowsProc,
+                     native_view);
+  }
+
   if (forward && !forwarding_mouse_messages_) {
     forwarding_mouse_messages_ = true;
     forwarding_windows_.insert(this);
@@ -522,6 +534,24 @@ void NativeWindowViews::SetForwardMouseMessages(bool forward) {
       mouse_hook_ = nullptr;
     }
   }
+}
+
+BOOL CALLBACK
+NativeWindowViews::FindLegacyWinFromChildWindowsProc(HWND hWnd, LPARAM lParam) {
+  if (hWnd) {
+    NativeWindowViews* native_view =
+        reinterpret_cast<NativeWindowViews*>(lParam);
+    wchar_t windowCaption[256];
+    GetWindowTextW(hWnd, &windowCaption[0], 256);
+    if (!wcscmp(windowCaption, L"Chrome Legacy Window")) {
+      native_view->legacy_window_ = hWnd;
+      // stop enumerating windows
+      return false;
+    }
+  }
+
+  // check next window
+  return true;
 }
 
 LRESULT CALLBACK NativeWindowViews::SubclassProc(HWND hwnd,

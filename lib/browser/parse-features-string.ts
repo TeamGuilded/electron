@@ -75,7 +75,7 @@ export function parseWebViewWebPreferences (preferences: string) {
   return parseCommaSeparatedKeyValue(preferences);
 }
 
-const allowedWebPreferences = ['zoomFactor', 'nodeIntegration', 'javascript', 'contextIsolation', 'webviewTag'] as const;
+const allowedWebPreferences = ['zoomFactor', 'nodeIntegration', 'javascript', 'contextIsolation', 'webviewTag', 'offscreen'] as const;
 type AllowedWebPreference = (typeof allowedWebPreferences)[number];
 
 /**

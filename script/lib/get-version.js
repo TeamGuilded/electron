@@ -24,5 +24,10 @@ module.exports.getElectronVersion = () => {
   if (output.status !== 0) {
     throw new Error(`Failed to get git tag, script quit with ${output.status}: ${output.stdout}`);
   }
-  return output.stdout.toString().trim();
+
+  // Guilded Patch: temporary fix until we fix our tagging scheme.
+  // we need to truncate our appended build identifier from the retrieved tag to get
+  // a correct version
+  const version = output.stdout.toString().trim().replace(/^v/g, '').split('-')[0];
+  return version;
 };

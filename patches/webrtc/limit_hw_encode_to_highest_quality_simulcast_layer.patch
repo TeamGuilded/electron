@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Ciarlillo <alex.ciarlillo@gmail.com>
+Date: Thu, 23 Mar 2023 12:44:20 -0400
+Subject: Limit HW encode to highest quality simulcast layer
+
+Guilded Patch: reduce HW encode usage on simulcast by only using it on
+highest quality simulcast layer.
+
+diff --git a/media/engine/simulcast_encoder_adapter.cc b/media/engine/simulcast_encoder_adapter.cc
+index 4853e68996261c32181c7b39d59b2e179ce45c55..a5b9c6831559234eafbda655a12a590d039c0d52 100644
+--- a/media/engine/simulcast_encoder_adapter.cc
++++ b/media/engine/simulcast_encoder_adapter.cc
+@@ -339,7 +339,8 @@ int SimulcastEncoderAdapter::InitEncode(
+   std::unique_ptr<EncoderContext> encoder_context = FetchOrCreateEncoderContext(
+       /*is_lowest_quality_stream=*/(
+           is_legacy_singlecast ||
+-          codec_.simulcastStream[lowest_quality_stream_idx].active));
++          codec_.simulcastStream[lowest_quality_stream_idx].active),
++          /*prefer_hardware_accel=*/lowest_quality_stream_idx == highest_quality_stream_idx);
+   if (encoder_context == nullptr) {
+     return WEBRTC_VIDEO_CODEC_MEMORY;
+   }
+@@ -393,7 +394,8 @@ int SimulcastEncoderAdapter::InitEncode(
+ 
+     if (encoder_context == nullptr) {
+       encoder_context = FetchOrCreateEncoderContext(
+-          /*is_lowest_quality_stream=*/stream_idx == lowest_quality_stream_idx);
++          /*is_lowest_quality_stream=*/stream_idx == lowest_quality_stream_idx,
++          /*prefer_hardware_accel=*/stream_idx == highest_quality_stream_idx);
+     }
+     if (encoder_context == nullptr) {
+       Release();
+@@ -703,10 +705,11 @@ void SimulcastEncoderAdapter::DestroyStoredEncoders() {
+ 
+ std::unique_ptr<SimulcastEncoderAdapter::EncoderContext>
+ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+-    bool is_lowest_quality_stream) const {
++    bool is_lowest_quality_stream, bool prefer_hardware_accel) const {
+   bool prefer_temporal_support = fallback_encoder_factory_ != nullptr &&
+                                  is_lowest_quality_stream &&
+-                                 prefer_temporal_support_on_base_layer_;
++                                 prefer_temporal_support_on_base_layer_ &&
++                                 !prefer_hardware_accel;
+ 
+   // Toggling of `prefer_temporal_support` requires encoder recreation. Find
+   // and reuse encoder with desired `prefer_temporal_support`. Otherwise, if
+@@ -736,7 +739,7 @@ SimulcastEncoderAdapter::FetchOrCreateEncoderContext(
+     VideoEncoder::EncoderInfo primary_info;
+     VideoEncoder::EncoderInfo fallback_info;
+ 
+-    if (primary_encoder != nullptr) {
++    if (primary_encoder != nullptr && (prefer_hardware_accel || fallback_encoder == nullptr)) {
+       primary_info = primary_encoder->GetEncoderInfo();
+       fallback_info = primary_info;
+ 
+@@ -888,7 +891,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
+     // Create one encoder and query it.
+ 
+     std::unique_ptr<SimulcastEncoderAdapter::EncoderContext> encoder_context =
+-        FetchOrCreateEncoderContext(/*is_lowest_quality_stream=*/true);
++        FetchOrCreateEncoderContext(/*is_lowest_quality_stream=*/true, /*prefer_hardware_accel=*/true);
+     if (encoder_context == nullptr) {
+       return encoder_info;
+     }
+diff --git a/media/engine/simulcast_encoder_adapter.h b/media/engine/simulcast_encoder_adapter.h
+index 553a6a0819018ee680308e16d0e41bce3199750c..6202ff59f338b925cf37de0d6329aee839b1346a 100644
+--- a/media/engine/simulcast_encoder_adapter.h
++++ b/media/engine/simulcast_encoder_adapter.h
+@@ -152,7 +152,7 @@ class RTC_EXPORT SimulcastEncoderAdapter : public VideoEncoder {
+   // `cached_encoder_contexts_`. It's const because it's used from
+   // const GetEncoderInfo().
+   std::unique_ptr<EncoderContext> FetchOrCreateEncoderContext(
+-      bool is_lowest_quality_stream) const;
++      bool is_lowest_quality_stream, bool prefer_hardware_accel) const;
+ 
+   webrtc::VideoCodec MakeStreamCodec(const webrtc::VideoCodec& codec,
+                                      int stream_idx,

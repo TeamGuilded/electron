@@ -89,6 +89,13 @@ class Cursor;
 }
 
 class DevToolsEyeDropper;
+
+namespace content {
+namespace mojom {
+class CreateNewWindowParams;
+}
+}  // namespace content
+
 class SkRegion;
 
 namespace electron {
@@ -518,6 +525,10 @@ class WebContents final : public ExclusiveAccessContext,
       const blink::mojom::WindowFeatures& window_features,
       bool user_gesture,
       bool* was_blocked) override;
+  void OnPrepareWebContentsCreation(
+      content::WebContents::CreateParams& contentsCreateParams,
+      const content::mojom::CreateNewWindowParams& windowCreateParams) override;
+
   content::WebContents* OpenURLFromTab(
       content::WebContents* source,
       const content::OpenURLParams& params,
